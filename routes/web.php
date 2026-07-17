@@ -33,7 +33,6 @@ Route::middleware(['auth'])->group(function () {
     // DASHBOARD
     // ============================================
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // ============================================
     // DAILY INPUT
@@ -67,48 +66,51 @@ Route::middleware(['auth'])->group(function () {
     // ============================================
     // REPORTS
     // ============================================
- // Reports
-Route::prefix('reports')->name('reports.')->group(function () {
-    Route::get('/', [ReportController::class, 'index'])->name('index');
-    Route::get('/dashboard', [ReportController::class, 'dashboard'])->name('dashboard');
-    Route::get('/export', [ReportController::class, 'export'])->name('export');
-});
-
-    // ============================================
-    // APPLICANTS (Full Module)
-    // ============================================
-    Route::prefix('applicants')->name('applicants.')->group(function () {
-        // Main CRUD
-        Route::get('/', [ApplicantController::class, 'index'])->name('index');
-        Route::post('/', [ApplicantController::class, 'store'])->name('store');
-        Route::put('/{applicant}', [ApplicantController::class, 'update'])->name('update');
-        Route::delete('/{applicant}', [ApplicantController::class, 'destroy'])->name('destroy');
-
-        // Work Experience
-        Route::post('/work-experience', [ApplicantController::class, 'storeWorkExperience'])->name('work-experience.store');
-        Route::delete('/work-experience/{id}', [ApplicantController::class, 'deleteWorkExperience'])->name('work-experience.destroy');
-
-        // Committee Review
-        Route::post('/review', [ApplicantController::class, 'saveCommitteeReview'])->name('review.save');
-
-        // Organizations
-        Route::post('/organizations', [ApplicantController::class, 'storeOrganization'])->name('organizations.store');
-        Route::delete('/organizations/{id}', [ApplicantController::class, 'deleteOrganization'])->name('organizations.destroy');
-
-        // Positions
-        Route::post('/positions', [ApplicantController::class, 'storePosition'])->name('positions.store');
-        Route::put('/positions', [ApplicantController::class, 'updatePosition'])->name('positions.update');
-        Route::delete('/positions/{id}', [ApplicantController::class, 'deletePosition'])->name('positions.destroy');
-
-        // Criteria
-        Route::post('/criteria', [ApplicantController::class, 'storeCriterion'])->name('criteria.store');
-        Route::delete('/criteria/{id}', [ApplicantController::class, 'deleteCriterion'])->name('criteria.destroy');
-
-        // Excel Exports
-        Route::get('/export', [ApplicantController::class, 'exportApplicants'])->name('export');
-        Route::get('/export-selection', [ApplicantController::class, 'exportSelection'])->name('export-selection');
-        Route::get('/export-profile', [ApplicantController::class, 'exportSelectionProfile'])->name('export-profile');
+    Route::prefix('reports')->name('reports.')->group(function () {
+        Route::get('/', [ReportController::class, 'index'])->name('index');
+        Route::get('/dashboard', [ReportController::class, 'dashboard'])->name('dashboard');
+        Route::get('/export', [ReportController::class, 'export'])->name('export');
     });
+// ============================================
+// APPLICANTS (Full Module)
+// ============================================
+Route::prefix('applicants')->name('applicants.')->group(function () {
+    // Main CRUD
+    Route::get('/', [ApplicantController::class, 'index'])->name('index');
+    Route::post('/', [ApplicantController::class, 'store'])->name('store');
+    Route::put('/{applicant}', [ApplicantController::class, 'update'])->name('update');
+    Route::delete('/{applicant}', [ApplicantController::class, 'destroy'])->name('destroy');
+
+    // Work Experience
+    Route::post('/work-experience', [ApplicantController::class, 'storeWorkExperience'])->name('work-experience.store');
+    Route::delete('/work-experience/{id}', [ApplicantController::class, 'deleteWorkExperience'])->name('work-experience.destroy');
+    Route::get('/work-experience/{id}/edit', [ApplicantController::class, 'editWorkExperience'])->name('work-experience.edit');
+    Route::put('/work-experience/{id}', [ApplicantController::class, 'updateWorkExperience'])->name('work-experience.update');
+
+    // Committee Review
+    Route::post('/review', [ApplicantController::class, 'saveCommitteeReview'])->name('review.save');
+
+    // Organizations
+    Route::post('/organizations', [ApplicantController::class, 'storeOrganization'])->name('organizations.store');
+    Route::delete('/organizations/{id}', [ApplicantController::class, 'deleteOrganization'])->name('organizations.destroy');
+
+    // Positions
+    Route::post('/positions', [ApplicantController::class, 'storePosition'])->name('positions.store');
+    Route::put('/positions', [ApplicantController::class, 'updatePosition'])->name('positions.update');
+    Route::delete('/positions/{id}', [ApplicantController::class, 'deletePosition'])->name('positions.destroy');
+
+    // Criteria
+    Route::post('/criteria', [ApplicantController::class, 'storeCriterion'])->name('criteria.store');
+    Route::delete('/criteria/{id}', [ApplicantController::class, 'deleteCriterion'])->name('criteria.destroy');
+
+    // Excel Exports
+    Route::get('/export', [ApplicantController::class, 'exportApplicants'])->name('export');
+    Route::get('/export-selection', [ApplicantController::class, 'exportSelection'])->name('export-selection');
+    Route::get('/export-profile', [ApplicantController::class, 'exportSelectionProfile'])->name('export-profile');
+    
+    // Single Applicant Profile Export - THIS MUST BE HERE
+    Route::get('/profile/{id}', [ApplicantController::class, 'exportSingleProfile'])->name('profile');
+});
 
     // ============================================
     // PASSWORD CHANGE
@@ -138,11 +140,6 @@ Route::prefix('reports')->name('reports.')->group(function () {
             Route::get('/full', [BackupController::class, 'full'])->name('full');
             Route::delete('/{file}', [BackupController::class, 'delete'])->name('delete');
         });
-
-        // System Logs
-        Route::get('/logs', [LogController::class, 'index'])->name('logs.index');
-        Route::get('/logs/{file}', [LogController::class, 'view'])->name('logs.view');
-        Route::delete('/logs/{file}', [LogController::class, 'delete'])->name('logs.delete');
     });
 });
 
