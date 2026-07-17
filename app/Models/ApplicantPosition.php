@@ -31,7 +31,7 @@ class ApplicantPosition extends Model
 
     public function applicants()
     {
-        return $this->hasMany(Applicant::class);
+        return $this->hasMany(Applicant::class, 'position_id');
     }
 
     public function selectionCriteria()

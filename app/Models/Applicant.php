@@ -35,22 +35,22 @@ class Applicant extends Model
 
     public function position()
     {
-        return $this->belongsTo(ApplicantPosition::class);
+        return $this->belongsTo(ApplicantPosition::class, 'position_id');
     }
 
     public function selection()
     {
-        return $this->hasOne(ApplicantSelection::class);
+        return $this->hasOne(ApplicantSelection::class, 'applicant_id');
     }
 
     public function workExperiences()
     {
-        return $this->hasMany(ApplicantWorkExperience::class);
+        return $this->hasMany(ApplicantWorkExperience::class, 'applicant_id');
     }
 
     public function criterionScores()
     {
-        return $this->hasMany(ApplicantCriterionScore::class);
+        return $this->hasMany(ApplicantCriterionScore::class, 'applicant_id');
     }
 
     public function getFullNameAttribute(): string

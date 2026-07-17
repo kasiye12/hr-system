@@ -28,138 +28,145 @@ class ApplicantController extends Controller
      * Display a listing of applicants
      */
     public function index(Request $request)
-    {
-        $user = Auth::user();
-        $canEdit = $user->canEdit();
+{
+    $user = Auth::user();
+    $canEdit = $user->canEdit();
 
-        // Get all organizations and positions
-        $organizations = Organization::orderBy('name')->get();
-        $positions = ApplicantPosition::with('organization')
-            ->orderBy('name')
-            ->get();
+    // Get all organizations and positions
+    $organizations = Organization::orderBy('name')->get();
+    $positions = ApplicantPosition::with('organization')
+        ->orderBy('name')
+        ->get();
 
-        // Get active positions and organizations
-        $activePositions = $positions->filter(function($p) { 
-            return $p->active == 1 || $p->active === true; 
+    // Get active positions and organizations
+    $activePositions = $positions->filter(function($p) { 
+        return $p->active == 1 || $p->active === true; 
+    });
+    $activeOrganizations = $organizations->filter(function($o) { 
+        return $o->active == 1 || $o->active === true; 
+    });
+
+    // Build filter query
+    $query = Applicant::with(['position.organization', 'selection']);
+
+    // Apply organization filter
+    if ($request->filled('organization') && $request->organization != 0) {
+        $query->whereHas('position', function($q) use ($request) {
+            $q->where('organization_id', $request->organization);
         });
-        $activeOrganizations = $organizations->filter(function($o) { 
-            return $o->active == 1 || $o->active === true; 
-        });
-
-        // Build filter query
-        $query = Applicant::with(['position.organization', 'selection']);
-
-        if ($request->filled('organization')) {
-            $query->whereHas('position', function($q) use ($request) {
-                $q->where('organization_id', $request->organization);
-            });
-        }
-
-        if ($request->filled('position')) {
-            $query->where('position_id', $request->position);
-        }
-
-        if ($request->filled('date_from')) {
-            $query->where('registration_date', '>=', $request->date_from);
-        }
-
-        if ($request->filled('date_to')) {
-            $query->where('registration_date', '<=', $request->date_to);
-        }
-
-        if ($request->filled('academic') && $request->academic != 'All') {
-            $query->where('academic_level', $request->academic);
-        }
-
-        if ($request->filled('decision') && $request->decision != 'All') {
-            $query->whereHas('selection', function($q) use ($request) {
-                $q->where('decision', $request->decision);
-            });
-        }
-
-        $applicants = $query->orderBy('registration_date', 'desc')
-            ->orderBy('surname')
-            ->get();
-
-        // Get work experiences
-        $allWorkExperiences = ApplicantWorkExperience::with(['applicant.position'])
-            ->whereIn('applicant_id', $applicants->pluck('id'))
-            ->orderBy('start_date')
-            ->get()
-            ->groupBy('applicant_id');
-
-        // For review form
-        $reviewApplicantId = $request->input('review_applicant');
-        $reviewApplicant = null;
-        $reviewCriteria = [];
-        $reviewScores = [];
-        $reviewExperiences = [];
-
-        if ($reviewApplicantId) {
-            $reviewApplicant = Applicant::with(['position.organization', 'selection'])->find($reviewApplicantId);
-            if ($reviewApplicant) {
-                $reviewCriteria = SelectionCriterion::where('organization_id', $reviewApplicant->position->organization_id)
-                    ->where(function($q) use ($reviewApplicant) {
-                        $q->where('position_id', $reviewApplicant->position_id)
-                            ->orWhereNull('position_id');
-                    })
-                    ->where('active', 1)
-                    ->orderBy('display_order')
-                    ->get();
-
-                $reviewScores = ApplicantCriterionScore::where('applicant_id', $reviewApplicantId)
-                    ->get()
-                    ->keyBy('criterion_id');
-
-                $reviewExperiences = ApplicantWorkExperience::where('applicant_id', $reviewApplicantId)
-                    ->orderBy('start_date')
-                    ->get();
-            }
-        }
-
-        // Edit mode
-        $editApplicant = null;
-        if ($request->filled('edit_registration')) {
-            $editApplicant = Applicant::with('position')->find($request->edit_registration);
-        }
-
-        // Statistics
-        $stats = [
-            'total' => $applicants->count(),
-            'degree_plus' => $applicants->whereIn('academic_level', ['First Degree', 'Second Degree', 'Third Degree'])->count(),
-            'selected' => $applicants->filter(function($a) {
-                return $a->selection && $a->selection->decision == 'Selected';
-            })->count(),
-            'positions' => $applicants->groupBy('position_id')->count(),
-        ];
-
-        // Academic levels
-        $academicLevels = [
-            'First Degree', 'Second Degree', 'Third Degree', 
-            'Diploma', 'High School Complete', 'Below High School'
-        ];
-
-        $decisions = ['Pending', 'Shortlisted', 'Selected', 'Reserve', 'Rejected'];
-
-        return view('applicants.index', compact(
-            'organizations',
-            'positions',
-            'activePositions',
-            'activeOrganizations',
-            'applicants',
-            'allWorkExperiences',
-            'reviewApplicant',
-            'reviewCriteria',
-            'reviewScores',
-            'reviewExperiences',
-            'editApplicant',
-            'stats',
-            'academicLevels',
-            'decisions',
-            'canEdit'
-        ));
     }
 
+    // Apply position filter
+    if ($request->filled('position') && $request->position != 0) {
+        $query->where('position_id', $request->position);
+    }
+
+    // Apply date filters
+    if ($request->filled('date_from')) {
+        $query->where('registration_date', '>=', $request->date_from);
+    }
+
+    if ($request->filled('date_to')) {
+        $query->where('registration_date', '<=', $request->date_to);
+    }
+
+    // Apply academic level filter
+    if ($request->filled('academic') && $request->academic != 'All') {
+        $query->where('academic_level', $request->academic);
+    }
+
+    // Apply selection decision filter
+    if ($request->filled('decision') && $request->decision != 'All') {
+        $query->whereHas('selection', function($q) use ($request) {
+            $q->where('decision', $request->decision);
+        });
+    }
+
+    // Get filtered applicants
+    $applicants = $query->orderBy('registration_date', 'desc')
+        ->orderBy('surname')
+        ->get();
+
+    // Get work experiences for all applicants
+    $allWorkExperiences = ApplicantWorkExperience::with(['applicant.position'])
+        ->whereIn('applicant_id', $applicants->pluck('id'))
+        ->orderBy('start_date')
+        ->get()
+        ->groupBy('applicant_id');
+
+    // For review form - load applicant data
+    $reviewApplicantId = $request->input('review_applicant');
+    $reviewApplicant = null;
+    $reviewCriteria = [];
+    $reviewScores = [];
+    $reviewExperiences = [];
+
+    if ($reviewApplicantId) {
+        $reviewApplicant = Applicant::with(['position.organization', 'selection'])->find($reviewApplicantId);
+        if ($reviewApplicant) {
+            $reviewCriteria = SelectionCriterion::where('organization_id', $reviewApplicant->position->organization_id)
+                ->where(function($q) use ($reviewApplicant) {
+                    $q->where('position_id', $reviewApplicant->position_id)
+                        ->orWhereNull('position_id');
+                })
+                ->where('active', 1)
+                ->orderBy('display_order')
+                ->get();
+
+            $reviewScores = ApplicantCriterionScore::where('applicant_id', $reviewApplicantId)
+                ->get()
+                ->keyBy('criterion_id');
+
+            $reviewExperiences = ApplicantWorkExperience::where('applicant_id', $reviewApplicantId)
+                ->orderBy('start_date')
+                ->get();
+        }
+    }
+
+    // Edit mode - load applicant for editing
+    $editApplicant = null;
+    if ($request->filled('edit_registration')) {
+        $editApplicant = Applicant::with('position')->find($request->edit_registration);
+    }
+
+    // Statistics
+    $stats = [
+        'total' => $applicants->count(),
+        'degree_plus' => $applicants->whereIn('academic_level', ['First Degree', 'Second Degree', 'Third Degree'])->count(),
+        'selected' => $applicants->filter(function($a) {
+            return $a->selection && $a->selection->decision == 'Selected';
+        })->count(),
+        'positions' => $applicants->groupBy('position_id')->count(),
+    ];
+
+    // Academic levels for dropdown
+    $academicLevels = [
+        'First Degree', 'Second Degree', 'Third Degree', 
+        'Diploma', 'High School Complete', 'Below High School'
+    ];
+
+    // Selection decisions for dropdown
+    $decisions = ['Pending', 'Shortlisted', 'Selected', 'Reserve', 'Rejected'];
+
+    // Return view with all variables
+    return view('applicants.index', compact(
+        'organizations',
+        'positions',
+        'activePositions',
+        'activeOrganizations',
+        'applicants',
+        'allWorkExperiences',
+        'reviewApplicant',
+        'reviewCriteria',
+        'reviewScores',
+        'reviewExperiences',
+        'editApplicant',
+        'stats',
+        'academicLevels',
+        'decisions',
+        'canEdit'
+    ));
+}
     /**
      * Store a newly created applicant
      */
@@ -851,44 +858,49 @@ class ApplicantController extends Controller
         }
     }
 
-    public function deletePosition($id)
-    {
-        $user = Auth::user();
+  /**
+ * Delete a position
+ */
+public function deletePosition($id)
+{
+    $user = Auth::user();
 
-        if (!$user->canEdit()) {
-            return redirect()->route('applicants.index')
-                ->with('error', 'You do not have permission to delete positions.');
-        }
-
-        $position = ApplicantPosition::findOrFail($id);
-        $name = $position->name;
-
-        DB::beginTransaction();
-
-        try {
-            if ($position->applicants()->count() > 0) {
-                throw new \Exception('This position has applicants and cannot be deleted.');
-            }
-
-            $position->delete();
-
-            AuditLog::create([
-                'username' => $user->username,
-                'action' => 'delete_position',
-                'details' => $name,
-            ]);
-
-            DB::commit();
-
-            return redirect()->route('applicants.index')
-                ->with('success', "Position '{$name}' deleted successfully.");
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return redirect()->route('applicants.index')
-                ->with('error', 'Failed to delete position: ' . $e->getMessage());
-        }
+    if (!$user->canEdit()) {
+        return redirect()->route('applicants.index')
+            ->with('error', 'You do not have permission to delete positions.');
     }
+
+    $position = ApplicantPosition::findOrFail($id);
+    $name = $position->name;
+
+    DB::beginTransaction();
+
+    try {
+        // Check if position has applicants
+        $applicantCount = Applicant::where('position_id', $id)->count();
+        if ($applicantCount > 0) {
+            throw new \Exception('This position has ' . $applicantCount . ' applicant(s) and cannot be deleted.');
+        }
+
+        $position->delete();
+
+        AuditLog::create([
+            'username' => $user->username,
+            'action' => 'delete_position',
+            'details' => $name,
+        ]);
+
+        DB::commit();
+
+        return redirect()->route('applicants.index')
+            ->with('success', "Position '{$name}' deleted successfully.");
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return redirect()->route('applicants.index')
+            ->with('error', 'Failed to delete position: ' . $e->getMessage());
+    }
+}
 
     // ============================================
     // CRITERIA MANAGEMENT

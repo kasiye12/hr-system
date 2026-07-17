@@ -115,6 +115,10 @@ class ProjectController extends Controller
             ->with('success', "Project '{$name}' deleted successfully.");
     }
 
+    // ============================================
+    // CATEGORY (JOB TITLE) MANAGEMENT
+    // ============================================
+
     public function storeCategory(Request $request)
     {
         $user = Auth::user();
@@ -162,6 +166,12 @@ class ProjectController extends Controller
                 ->with('error', 'You do not have permission to update job titles.');
         }
 
+        // Check if category is reconciliation
+        if ($category->is_reconciliation) {
+            return redirect()->route('projects.index')
+                ->with('error', 'Cannot update reconciliation categories.');
+        }
+
         $request->validate([
             'code' => 'required|string|max:50|unique:categories,code,' . $category->id,
             'job_title' => 'required|string|max:200',
@@ -203,11 +213,15 @@ class ProjectController extends Controller
                 ->with('error', 'Cannot delete reconciliation category.');
         }
 
+        // Check if category has daily entries
+        if ($category->dailyEntries()->count() > 0) {
+            return redirect()->route('projects.index')
+                ->with('error', "Job title '{$category->name}' has daily entries and cannot be deleted.");
+        }
+
         $name = $category->name;
         $code = $category->code;
 
-        // Delete related daily entries
-        $category->dailyEntries()->delete();
         $category->delete();
 
         AuditLog::create([
@@ -218,5 +232,28 @@ class ProjectController extends Controller
 
         return redirect()->route('projects.index')
             ->with('success', "Job title '{$name}' deleted successfully.");
+    }
+
+    public function toggleCategory(Request $request, Category $category)
+    {
+        $user = Auth::user();
+
+        if (!$user->canEdit()) {
+            return redirect()->route('projects.index')
+                ->with('error', 'You do not have permission to manage job titles.');
+        }
+
+        // Toggle active status
+        $category->is_reconciliation = !$category->is_reconciliation;
+        $category->save();
+
+        AuditLog::create([
+            'username' => $user->username,
+            'action' => 'toggle_category',
+            'details' => "{$category->name} - " . ($category->is_reconciliation ? 'Reconciliation' : 'Active'),
+        ]);
+
+        return redirect()->route('projects.index')
+            ->with('success', "Job title '{$category->name}' status updated.");
     }
 }

@@ -6,17 +6,15 @@ use App\Models\DailyEntry;
 use App\Models\Project;
 use App\Models\Category;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
     public function index(Request $request)
     {
-        $selectedDate = $request->input('date');
-        $selectedProjectId = $request->input('project', 0);
-        $selectedType = $request->input('type', 'All');
-        $selectedProjectStatus = $request->input('project_status', 'Active');
-
+        $user = Auth::user();
+        
         // Get available dates
         $dates = DailyEntry::join('categories', 'categories.id', '=', 'daily_entries.category_id')
             ->where('categories.is_reconciliation', false)
@@ -29,83 +27,46 @@ class DashboardController extends Controller
             $dates = [now()->format('Y-m-d')];
         }
 
-        if (!$selectedDate || !in_array($selectedDate, $dates)) {
-            $selectedDate = end($dates);
-        }
+        $selectedDate = $request->input('date', end($dates));
+        $selectedProjectId = (int) $request->input('project', 0);
+        $selectedType = $request->input('type', 'All');
+        $selectedProjectStatus = $request->input('project_status', 'Active');
 
         // Get projects
         $projects = Project::orderByRaw('COALESCE(slot, 999), name')->get();
 
-        // Build query conditions
-        $whereConditions = [
-            ['daily_entries.report_date', '=', $selectedDate],
-            ['categories.is_reconciliation', '=', false],
-        ];
-
-        if ($selectedProjectId > 0) {
-            $whereConditions[] = ['daily_entries.project_id', '=', $selectedProjectId];
-        }
-
+        // Get project IDs based on status
+        $projectIds = [];
         if ($selectedProjectStatus !== 'All') {
-            $projectsWithStatus = Project::where('status', $selectedProjectStatus)->pluck('id');
-            $whereConditions[] = ['daily_entries.project_id', 'IN', $projectsWithStatus];
+            $projectIds = Project::where('status', $selectedProjectStatus)->pluck('id')->toArray();
         }
 
-        // Get type totals
-        $typeTotals = DailyEntry::join('categories', 'categories.id', '=', 'daily_entries.category_id')
-            ->join('projects', 'projects.id', '=', 'daily_entries.project_id')
-            ->where($whereConditions)
-            ->select('categories.employment_type', DB::raw('COALESCE(SUM(daily_entries.headcount), 0) as total'))
-            ->groupBy('categories.employment_type')
-            ->get()
-            ->keyBy('employment_type');
-
-        $permanent = round($typeTotals['Permanent']->total ?? 0);
-        $contract = round($typeTotals['Contract']->total ?? 0);
-        $daily = round($typeTotals['Daily']->total ?? 0);
-        $grandTotal = $permanent + $contract + $daily;
-
-        // Get trend data
-        $trendQuery = DailyEntry::join('categories', 'categories.id', '=', 'daily_entries.category_id')
-            ->join('projects', 'projects.id', '=', 'daily_entries.project_id')
+        // Calculate totals
+        $totalsQuery = DailyEntry::join('categories', 'categories.id', '=', 'daily_entries.category_id')
+            ->where('daily_entries.report_date', $selectedDate)
             ->where('categories.is_reconciliation', false);
 
         if ($selectedProjectId > 0) {
-            $trendQuery->where('daily_entries.project_id', $selectedProjectId);
+            $totalsQuery->where('daily_entries.project_id', $selectedProjectId);
+        } elseif (!empty($projectIds)) {
+            $totalsQuery->whereIn('daily_entries.project_id', $projectIds);
         }
 
-        if ($selectedProjectStatus !== 'All') {
-            $projectsWithStatus = Project::where('status', $selectedProjectStatus)->pluck('id');
-            $trendQuery->whereIn('daily_entries.project_id', $projectsWithStatus);
-        }
+        $permanent = (int) $totalsQuery->where('categories.employment_type', 'Permanent')->sum('daily_entries.headcount');
+        $contract = (int) $totalsQuery->where('categories.employment_type', 'Contract')->sum('daily_entries.headcount');
+        $daily = (int) $totalsQuery->where('categories.employment_type', 'Daily')->sum('daily_entries.headcount');
+        $grandTotal = $permanent + $contract + $daily;
 
-        if ($selectedType !== 'All') {
-            $trendQuery->where('categories.employment_type', $selectedType);
-        }
-
-        $trendData = $trendQuery->select(
-                DB::raw('DATE_FORMAT(daily_entries.report_date, "%Y-%m-%d") as report_date'),
-                DB::raw('COALESCE(SUM(daily_entries.headcount), 0) as total')
-            )
-            ->groupBy('daily_entries.report_date')
-            ->orderBy('daily_entries.report_date')
-            ->get();
-
-        // Get project graph data
+        // Get graph data
         $graphQuery = DailyEntry::join('categories', 'categories.id', '=', 'daily_entries.category_id')
             ->join('projects', 'projects.id', '=', 'daily_entries.project_id')
-            ->where([
-                ['daily_entries.report_date', '=', $selectedDate],
-                ['categories.is_reconciliation', '=', false],
-            ]);
+            ->where('daily_entries.report_date', $selectedDate)
+            ->where('categories.is_reconciliation', false);
 
         if ($selectedProjectId > 0) {
             $graphQuery->where('daily_entries.project_id', $selectedProjectId);
-        }
-
-        if ($selectedProjectStatus !== 'All') {
-            $projectsWithStatus = Project::where('status', $selectedProjectStatus)->pluck('id');
-            $graphQuery->whereIn('daily_entries.project_id', $projectsWithStatus);
+        } elseif (!empty($projectIds)) {
+            $graphQuery->whereIn('daily_entries.project_id', $projectIds);
         }
 
         if ($selectedType !== 'All') {
@@ -117,24 +78,19 @@ class DashboardController extends Controller
                 DB::raw('COALESCE(SUM(daily_entries.headcount), 0) as total')
             )
             ->groupBy('projects.id', 'projects.name', 'projects.slot')
-            ->orderByRaw('total DESC, COALESCE(projects.slot, 999), projects.name')
+            ->orderByRaw('COALESCE(projects.slot, 999), projects.name')
             ->get();
 
         // Get table data
         $tableQuery = DailyEntry::join('categories', 'categories.id', '=', 'daily_entries.category_id')
             ->join('projects', 'projects.id', '=', 'daily_entries.project_id')
-            ->where([
-                ['daily_entries.report_date', '=', $selectedDate],
-                ['categories.is_reconciliation', '=', false],
-            ]);
+            ->where('daily_entries.report_date', $selectedDate)
+            ->where('categories.is_reconciliation', false);
 
         if ($selectedProjectId > 0) {
             $tableQuery->where('daily_entries.project_id', $selectedProjectId);
-        }
-
-        if ($selectedProjectStatus !== 'All') {
-            $projectsWithStatus = Project::where('status', $selectedProjectStatus)->pluck('id');
-            $tableQuery->whereIn('daily_entries.project_id', $projectsWithStatus);
+        } elseif (!empty($projectIds)) {
+            $tableQuery->whereIn('daily_entries.project_id', $projectIds);
         }
 
         $tableData = $tableQuery->select(
@@ -149,6 +105,7 @@ class DashboardController extends Controller
             ->get();
 
         return view('dashboard.index', compact(
+            'user',
             'dates',
             'selectedDate',
             'projects',
@@ -159,7 +116,6 @@ class DashboardController extends Controller
             'contract',
             'daily',
             'grandTotal',
-            'trendData',
             'graphProjects',
             'tableData'
         ));

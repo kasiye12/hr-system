@@ -239,6 +239,7 @@
             <a href="{{ route('projects.index') }}" @if(request()->routeIs('projects.*')) class="active" @endif>Project Setup</a>
             <a href="{{ route('comparison.index') }}" @if(request()->routeIs('comparison.*')) class="active" @endif>Comparison</a>
             <a href="{{ route('reports.index') }}" @if(request()->routeIs('reports.*')) class="active" @endif>Reports</a>
+            <a href="{{ route('import.index') }}" @if(request()->routeIs('import.*')) class="active" @endif>Import Data</a>
             @if(auth()->user() && auth()->user()->role === 'admin')
                 <a href="{{ route('users.index') }}" @if(request()->routeIs('users.*')) class="active" @endif>Users</a>
                 <a href="{{ route('backup.index') }}" @if(request()->routeIs('backup.*')) class="active" @endif>Backup</a>
