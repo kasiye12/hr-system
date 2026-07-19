@@ -40,4 +40,60 @@ class ApplicantSelection extends Model
     {
         return $this->belongsTo(Applicant::class);
     }
+
+    /**
+     * Calculate weighted score based on criteria
+     */
+    public static function calculateWeightedScore($applicantId)
+    {
+        $applicant = Applicant::with('criterionScores.criterion')->find($applicantId);
+        if (!$applicant) {
+            return 0;
+        }
+
+        $weightedTotal = 0;
+        $weightTotal = 0;
+
+        foreach ($applicant->criterionScores as $score) {
+            if ($score->criterion) {
+                $weightedTotal += ($score->score / $score->criterion->max_score) * $score->criterion->weight;
+                $weightTotal += $score->criterion->weight;
+            }
+        }
+
+        return $weightTotal > 0 ? round(($weightedTotal / $weightTotal) * 100, 2) : 0;
+    }
+
+    /**
+     * Update rank for all applicants in a position
+     */
+    public static function updateRanks($positionId)
+    {
+        $applicants = Applicant::where('position_id', $positionId)
+            ->with('selection')
+            ->get();
+
+        $scoredApplicants = [];
+        foreach ($applicants as $applicant) {
+            if ($applicant->selection) {
+                $scoredApplicants[] = [
+                    'id' => $applicant->id,
+                    'score' => $applicant->selection->final_score,
+                ];
+            }
+        }
+
+        // Sort by score descending
+        usort($scoredApplicants, function($a, $b) {
+            return $b['score'] <=> $a['score'];
+        });
+
+        // Update ranks
+        foreach ($scoredApplicants as $index => $data) {
+            ApplicantSelection::where('applicant_id', $data['id'])
+                ->update(['rank_no' => $index + 1]);
+        }
+
+        return $scoredApplicants;
+    }
 }

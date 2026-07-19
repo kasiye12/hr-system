@@ -4,9 +4,24 @@
 
 @section('content')
     <style>
-        /* ============================================
-           CUSTOM STYLES FOR APPLICANT PAGE
-           ============================================ */
+        :root {
+            --nav: #16324f;
+            --nav2: #0f2235;
+            --accent: #1b7f79;
+            --bg: #f4f7fb;
+            --card: #fff;
+            --text: #1b2635;
+            --muted: #627386;
+            --line: #dce5ee;
+            --danger: #a61b1b;
+            --success: #18794e;
+            --warn: #a45100;
+            --blue: #397a9f;
+            --orange: #d38b2a;
+        }
+        
+        * { box-sizing: border-box; }
+        
         .applicant-nav {
             display: flex;
             flex-wrap: wrap;
@@ -15,7 +30,7 @@
             background: #fff;
             padding: 8px 12px;
             border-radius: 10px;
-            border: 1px solid #dce5ee;
+            border: 1px solid var(--line);
             box-shadow: 0 2px 7px rgba(21,49,78,0.04);
         }
         .applicant-nav a {
@@ -30,118 +45,71 @@
             align-items: center;
             gap: 6px;
         }
-        .applicant-nav a:hover {
-            background: #e8f3f2;
-            color: #0c625e;
-        }
-        .applicant-nav a.active {
-            background: #1b7f79;
-            color: #fff;
-        }
+        .applicant-nav a:hover { background: #e8f3f2; color: #0c625e; }
+        .applicant-nav a.active { background: var(--accent); color: #fff; }
         .applicant-nav a .badge-count {
-            background: #e8f3f2;
-            color: #0c625e;
-            font-size: 10px;
-            padding: 1px 8px;
-            border-radius: 999px;
-            font-weight: 700;
+            background: #e8f3f2; color: #0c625e;
+            font-size: 10px; padding: 1px 8px; border-radius: 999px; font-weight: 700;
         }
-        .applicant-nav a.active .badge-count {
-            background: rgba(255,255,255,0.2);
-            color: #fff;
-        }
-        .section-card {
-            display: none;
-            animation: fadeIn 0.3s ease;
-        }
-        .section-card.active {
-            display: block;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .quick-actions {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin-bottom: 16px;
-        }
-        .quick-actions .btn {
-            font-size: 12px;
-            padding: 6px 14px;
-        }
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 12px;
-            margin-bottom: 16px;
-        }
+        .applicant-nav a.active .badge-count { background: rgba(255,255,255,0.2); color: #fff; }
+        
+        .section-card { display: none; animation: fadeIn 0.3s ease; }
+        .section-card.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
         .stats-grid .stat-card {
-            background: #fff;
-            border: 1px solid #dce5ee;
-            border-radius: 8px;
-            padding: 12px 16px;
-            text-align: center;
+            background: #fff; border: 1px solid var(--line); border-radius: 8px;
+            padding: 14px 16px; text-align: center; transition: transform 0.2s;
         }
-        .stats-grid .stat-card .number {
-            font-size: 22px;
-            font-weight: 700;
-            color: #16324f;
+        .stats-grid .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .stats-grid .stat-card .number { font-size: 24px; font-weight: 700; color: var(--nav); }
+        .stats-grid .stat-card .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; margin-top: 4px; }
+        .stats-grid .stat-card.highlight { background: #dfeeea; border-color: var(--accent); }
+        .stats-grid .stat-card.highlight .number { color: #0c5d58; }
+        
+        .card { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 20px; box-shadow: 0 2px 7px rgba(21,49,78,0.04); margin-bottom: 16px; }
+        .card-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #f0f4f8; }
+        .card-header h2 { margin: 0; font-size: 18px; font-weight: 700; color: var(--text); }
+        .card-header .subtitle { font-size: 12px; color: var(--muted); margin-top: 2px; }
+        
+        .form-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; align-items: end; }
+        .form-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; align-items: end; }
+        .field { display: flex; flex-direction: column; gap: 5px; }
+        .field label { font-size: 12px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
+        .field input, .field select, .field textarea {
+            padding: 9px 12px; border: 1px solid #bac8d6; border-radius: 6px;
+            font-size: 13px; width: 100%; min-width: 0; transition: border-color 0.15s, box-shadow 0.15s; font-family: inherit;
         }
-        .stats-grid .stat-card .label {
-            font-size: 11px;
-            color: #627386;
-            text-transform: uppercase;
-            letter-spacing: 0.03em;
-            margin-top: 2px;
-        }
-        .stats-grid .stat-card.highlight {
-            background: #dfeeea;
-            border-color: #1b7f79;
-        }
-        .stats-grid .stat-card.highlight .number {
-            color: #0c5d58;
-        }
-        .form-grid-4 {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
-            align-items: end;
-        }
-        .form-grid-3 {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-            align-items: end;
-        }
-        .form-grid-2 {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-            align-items: end;
-        }
-        @media (max-width: 768px) {
-            .form-grid-4 { grid-template-columns: 1fr 1fr; }
-            .form-grid-3 { grid-template-columns: 1fr 1fr; }
-            .form-grid-2 { grid-template-columns: 1fr; }
-            .applicant-nav { flex-direction: column; }
-            .applicant-nav a { width: 100%; justify-content: center; }
-        }
-        @media (max-width: 480px) {
-            .form-grid-4 { grid-template-columns: 1fr; }
-            .form-grid-3 { grid-template-columns: 1fr; }
-            .stats-grid { grid-template-columns: 1fr 1fr; }
-        }
-        .table-wrap { overflow-x: auto; margin-top: 12px; }
-        .table-wrap table { min-width: 700px; }
-        .badge-status {
-            display: inline-block;
-            padding: 2px 10px;
-            border-radius: 999px;
-            font-size: 11px;
-            font-weight: 700;
-        }
+        .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(27,127,121,0.1); }
+        .field textarea { resize: vertical; min-height: 60px; }
+        
+        .btn { border: none; border-radius: 6px; padding: 9px 18px; font-weight: 600; cursor: pointer; font-size: 13px; transition: all 0.15s; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+        .btn-primary { background: var(--accent); color: #fff; } .btn-primary:hover { background: #156b66; }
+        .btn-secondary { background: #60758a; color: #fff; }
+        .btn-danger { background: #a94343; color: #fff; }
+        .btn-light { background: #e9eff5; color: #23384d; }
+        .btn-teal { background: var(--accent); color: #fff; }
+        .btn-blue { background: var(--blue); color: #fff; }
+        .btn-orange { background: var(--orange); color: #fff; }
+        .btn-sm { padding: 5px 10px; font-size: 11px; }
+        .btn-xs { padding: 3px 8px; font-size: 10px; }
+        
+        .table-wrap { overflow-x: auto; margin-top: 12px; border-radius: 8px; border: 1px solid var(--line); }
+        table { width: 100%; border-collapse: collapse; min-width: 700px; }
+        th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--line); font-size: 13px; }
+        th { background: #f0f4f8; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #34495e; font-weight: 700; white-space: nowrap; }
+        tr:hover td { background: #f8fbfd; }
+        .num { text-align: right; font-variant-numeric: tabular-nums; font-family: 'SF Mono', 'Consolas', monospace; }
+        
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+        .badge-success { background: #dcf5e7; color: #12643c; }
+        .badge-danger { background: #ffeded; color: #a61b1b; }
+        .badge-warning { background: #fff5e5; color: #a45100; }
+        .badge-info { background: #dff3ff; color: #0d6289; }
+        .badge-purple { background: #e6e3ff; color: #4b3bad; }
+        .badge-muted { background: #f0f0f0; color: #666; }
+        .badge-teal { background: #e8f3f2; color: #0c625e; }
         .badge-status.active { background: #dcf5e7; color: #12643c; }
         .badge-status.inactive { background: #eee; color: #666; }
         .badge-status.pending { background: #fff5e5; color: #a45100; }
@@ -149,108 +117,64 @@
         .badge-status.rejected { background: #ffeded; color: #a61b1b; }
         .badge-status.shortlisted { background: #e6e3ff; color: #4b3bad; }
         .badge-status.reserve { background: #dff3ff; color: #0d6289; }
-        .section-title {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            margin-bottom: 12px;
-        }
-        .section-title h2 {
-            margin: 0;
-            font-size: 18px;
-        }
-        .section-title .subtitle {
-            font-size: 13px;
-            color: #627386;
-        }
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: #627386;
-        }
-        .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
-        .empty-state h4 { margin: 0 0 4px; color: #24384c; }
-        .empty-state p { margin: 0; font-size: 13px; }
-        .inline-form {
-            display: flex;
-            gap: 10px;
-            align-items: end;
-            flex-wrap: wrap;
-        }
-        .inline-form .field {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-        .inline-form .field label {
-            font-size: 12px;
-            color: #627386;
-            font-weight: 700;
-        }
-        .inline-form .field input,
-        .inline-form .field select {
-            padding: 8px 12px;
-            border: 1px solid #bac8d6;
-            border-radius: 6px;
-            font-size: 13px;
-            min-width: 140px;
-        }
-        .btn-sm {
-            padding: 4px 10px;
-            font-size: 11px;
-        }
-        .btn-orange { background: #d38b2a; color: #fff; }
-        .btn-orange:hover { background: #b87820; color: #fff; }
-        .btn-teal { background: #1b7f79; color: #fff; }
-        .btn-teal:hover { background: #156b66; color: #fff; }
-        .btn-blue { background: #397a9f; color: #fff; }
-        .btn-blue:hover { background: #2d6383; color: #fff; }
-        .highlight-box {
-            background: #f8fbfd;
-            border: 1px solid #dce5ee;
-            border-radius: 8px;
-            padding: 16px;
-        }
-        .applicant-form .field input,
-        .applicant-form .field select,
-        .applicant-form .field textarea {
-            width: 100%;
-            min-width: 0;
-        }
-        .applicant-form .field textarea {
-            padding: 8px 10px;
-            border: 1px solid #bac8d6;
-            border-radius: 6px;
-            font-size: 13px;
-            font-family: inherit;
-            resize: vertical;
-            min-height: 50px;
-        }
-        .applicant-form {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
-            align-items: end;
-        }
-        @media (max-width: 768px) {
-            .applicant-form { grid-template-columns: 1fr 1fr; }
-        }
-        @media (max-width: 480px) {
-            .applicant-form { grid-template-columns: 1fr; }
-        }
-        .section-gap { margin-top: 16px; }
+        
+        .alert { padding: 12px 16px; border-radius: 8px; margin: 12px 0; font-size: 13px; }
+        .alert-success { background: #e9f7ef; color: var(--success); border: 1px solid #b9e3ca; }
+        .alert-error { background: #ffeded; color: var(--danger); border: 1px solid #efbbbb; }
+        .alert-warning { background: #fff5e5; color: var(--warn); border: 1px solid #f1d3a3; }
+        .alert-info { background: #e8f4fd; color: #0d6289; border: 1px solid #b8d8f0; }
+        
+        .searchable-wrapper { position: relative; width: 100%; }
+        .searchable-input { width: 100% !important; padding: 9px 36px 9px 14px !important; border: 1px solid #bac8d6 !important; border-radius: 6px !important; font-size: 13px !important; }
+        .searchable-input:focus { border-color: var(--accent) !important; box-shadow: 0 0 0 3px rgba(27,127,121,0.1) !important; }
+        .searchable-dropdown { position: absolute; top: 100%; left: 0; right: 0; max-height: 250px; overflow-y: auto; background: white; border: 1px solid #bac8d6; border-top: none; border-radius: 0 0 8px 8px; z-index: 9999; box-shadow: 0 8px 20px rgba(0,0,0,0.12); display: none; }
+        .searchable-dropdown.visible { display: block; border-color: var(--accent); }
+        .searchable-option { padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #f0f0f0; transition: background 0.12s; font-size: 13px; }
+        .searchable-option:hover { background: #e8f3f2; }
+        .searchable-option.selected { background: #d4edda !important; border-left: 3px solid var(--accent); }
+        .searchable-option.clear-option { color: var(--muted); font-style: italic; background: #f8f9fa; }
+        .searchable-highlight { background: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+        
+        .applicant-list-panel { border: 2px solid var(--accent); border-radius: 10px; overflow: hidden; background: #fff; }
+        .applicant-list-header { background: #f8fbfd; padding: 14px 18px; border-bottom: 2px solid #e0e8f0; }
+        .applicant-list-body { max-height: 450px; overflow-y: auto; }
+        .applicant-list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; cursor: pointer; border-bottom: 1px solid #f0f0f0; transition: all 0.12s; }
+        .applicant-list-item:hover { background: #e8f3f2; }
+        .applicant-list-item.selected { background: #d4edda; border-left: 4px solid var(--accent); }
+        .applicant-list-item .info { flex: 1; min-width: 0; }
+        .applicant-list-item .name { font-weight: 600; font-size: 14px; color: var(--text); margin-bottom: 3px; }
+        .applicant-list-item .meta { display: flex; flex-wrap: wrap; gap: 8px; font-size: 12px; color: var(--muted); }
+        
+        .section-gap { margin-top: 20px; }
+        .text-center { text-align: center; }
+        .text-sm { font-size: 12px; }
+        .text-xs { font-size: 11px; }
+        .flex { display: flex; }
+        .flex-wrap { flex-wrap: wrap; }
+        .gap-2 { gap: 8px; }
+        .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; }
+        .mt-2 { margin-top: 8px; }
+        .mt-3 { margin-top: 12px; }
+        .mt-4 { margin-top: 16px; }
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); }
+        .highlight-box { background: #f8fbfd; border: 1px solid #dce5ee; border-radius: 8px; padding: 18px; }
+        
+        .exp-result-card { background: #fff; padding: 16px; border-radius: 8px; border: 1px solid #dce5ee; }
+        .exp-value { font-size: 20px; font-weight: 700; }
+        
+        @media (max-width: 1024px) { .form-grid { grid-template-columns: repeat(3, 1fr); } }
+        @media (max-width: 768px) { .form-grid { grid-template-columns: 1fr 1fr; } .form-grid-3 { grid-template-columns: 1fr 1fr; } .applicant-nav { flex-direction: column; } }
+        @media (max-width: 480px) { .form-grid { grid-template-columns: 1fr; } .form-grid-3 { grid-template-columns: 1fr; } .stats-grid { grid-template-columns: 1fr 1fr; } }
     </style>
 
-    <!-- ============================================ -->
     <!-- PAGE HEADER -->
-    <!-- ============================================ -->
-    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
+    <div class="flex justify-between items-center flex-wrap mb-3">
         <div>
-            <h1 style="margin:0;">📝 Applicant Registration</h1>
-            <div class="subtitle" style="margin-top:2px;">Manage applicants, work experience, committee reviews, and selection decisions</div>
+            <h1 style="margin:0; font-size:22px; font-weight:700;">📝 Applicant Registration</h1>
+            <p style="margin:4px 0 0; color:var(--muted); font-size:13px;">Manage applicants, work experience, committee reviews, and selection decisions</p>
         </div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <div class="flex gap-2 flex-wrap mt-2">
             @if($canEdit)
                 <a href="#registration-form" class="btn btn-teal" onclick="switchSection('registration')">➕ New Applicant</a>
             @endif
@@ -258,686 +182,353 @@
         </div>
     </div>
 
-    <!-- ============================================ -->
     <!-- QUICK STATS -->
-    <!-- ============================================ -->
     <div class="stats-grid">
-        <div class="stat-card">
-            <div class="number">{{ number_format($stats['total']) }}</div>
-            <div class="label">📊 Total Applicants</div>
-        </div>
-        <div class="stat-card">
-            <div class="number">{{ number_format($stats['degree_plus']) }}</div>
-            <div class="label">🎓 Degree & Above</div>
-        </div>
-        <div class="stat-card highlight">
-            <div class="number">{{ number_format($stats['selected']) }}</div>
-            <div class="label">✅ Selected</div>
-        </div>
-        <div class="stat-card">
-            <div class="number">{{ number_format($stats['positions']) }}</div>
-            <div class="label">📌 Positions</div>
-        </div>
-        <div class="stat-card">
-            <div class="number">{{ number_format($applicants->count()) }}</div>
-            <div class="label">👥 Active Applicants</div>
-        </div>
-        <div class="stat-card">
-            <div class="number">{{ number_format($organizations->count()) }}</div>
-            <div class="label">🏢 Organizations</div>
-        </div>
+        <div class="stat-card"><div class="number">{{ number_format($stats['total']) }}</div><div class="label">📊 Total Applicants</div></div>
+        <div class="stat-card"><div class="number">{{ number_format($stats['degree_plus']) }}</div><div class="label">🎓 Degree & Above</div></div>
+        <div class="stat-card highlight"><div class="number">{{ number_format($stats['selected']) }}</div><div class="label">✅ Selected</div></div>
+        <div class="stat-card"><div class="number">{{ number_format($stats['positions']) }}</div><div class="label">📌 Positions</div></div>
+        <div class="stat-card"><div class="number">{{ number_format($applicants->count()) }}</div><div class="label">👥 Active</div></div>
+        <div class="stat-card"><div class="number">{{ number_format($organizations->count()) }}</div><div class="label">🏢 Organizations</div></div>
     </div>
 
-    <!-- ============================================ -->
     <!-- NAVIGATION TABS -->
-    <!-- ============================================ -->
     <div class="applicant-nav" id="mainNav">
-        <a href="#section-registration" class="active" onclick="switchSection('registration')">
-            📝 Register
-            <span class="badge-count">New</span>
-        </a>
-        <a href="#section-experience" onclick="switchSection('experience')">
-            💼 Experience
-            <span class="badge-count">{{ $allWorkExperiences->sum(function($e) { return $e->count(); }) }}</span>
-        </a>
-        <a href="#section-review" onclick="switchSection('review')">
-            🎯 Committee Review
-        </a>
-        <a href="#section-list" onclick="switchSection('list')">
-            📋 Applicant List
-            <span class="badge-count">{{ $applicants->count() }}</span>
-        </a>
-        <a href="#section-positions" onclick="switchSection('positions')">
-            📌 Positions
-            <span class="badge-count">{{ $positions->count() }}</span>
-        </a>
-        <a href="#section-criteria" onclick="switchSection('criteria')">
-            📊 Criteria
-            <span class="badge-count">{{ \App\Models\SelectionCriterion::count() }}</span>
-        </a>
-        <a href="#section-reports" onclick="switchSection('reports')">
-            📈 Reports
-        </a>
+        <a href="#section-registration" class="active" onclick="switchSection('registration')">📝 Register <span class="badge-count">New</span></a>
+        <a href="#section-experience" onclick="switchSection('experience')">💼 Experience <span class="badge-count">{{ $allWorkExperiences->sum(fn($e) => $e->count()) }}</span></a>
+        <a href="#section-review" onclick="switchSection('review')">🎯 Committee Review</a>
+        <a href="#section-list" onclick="switchSection('list')">📋 List <span class="badge-count">{{ $applicants->count() }}</span></a>
+        <a href="#section-calculation" onclick="switchSection('calculation')">📊 Calculate</a>
+        <a href="#section-positions" onclick="switchSection('positions')">📌 Positions <span class="badge-count">{{ $positions->count() }}</span></a>
+        <a href="#section-criteria" onclick="switchSection('criteria')">📊 Criteria</a>
+        <a href="#section-reports" onclick="switchSection('reports')">📈 Reports</a>
     </div>
 
-    <!-- ============================================ -->
-    <!-- SECTION: REGISTRATION -->
-    <!-- ============================================ -->
+    <!-- SECTION 1: REGISTRATION -->
     <div id="section-registration" class="section-card active">
         <div class="card" id="registration-form">
-            <div class="section-title">
-                <h2>{{ $editApplicant ? '✏️ Update Applicant Registration' : '📋 Register New Applicant' }}</h2>
-                <span class="subtitle">Fill in the applicant details below</span>
+            <div class="card-header">
+                <div>
+                    <h2>{{ $editApplicant ? '✏️ Update Applicant' : '📋 Register New Applicant' }}</h2>
+                    <p class="subtitle">Fields marked with <span style="color:red;">*</span> are required</p>
+                </div>
             </div>
-            
             @if($canEdit && isset($activePositions) && $activePositions->count() > 0)
-                <form method="post" class="applicant-form" action="{{ $editApplicant ? route('applicants.update', $editApplicant) : route('applicants.store') }}">
+                <form method="post" class="form-grid" action="{{ $editApplicant ? route('applicants.update', $editApplicant->id) : route('applicants.store') }}">
                     @csrf
                     @if($editApplicant) @method('PUT') @endif
-                    
                     <div class="field">
-                        <label>Application Position <span style="color:red;">*</span></label>
-                        <select name="position_id" required>
-                            <option value="">Select Position</option>
-                            @foreach($activePositions as $position)
-                                <option value="{{ $position->id }}" 
-                                    @if($editApplicant && $editApplicant->position_id == $position->id) selected @endif
-                                    @if(old('position_id') == $position->id) selected @endif>
-                                    {{ $position->organization->name ?? '' }} — {{ $position->name }}
-                                </option>
-                            @endforeach
-                        </select>
+                        <label>Position <span style="color:red;">*</span></label>
+                        <div class="searchable-wrapper">
+                            <input type="text" class="searchable-input" id="position_search" placeholder="🔍 Search position..." autocomplete="off"
+                                   onfocus="toggleDropdown('position', true)" onkeyup="filterDropdown('position')"
+                                   value="{{ old('position_text', $editApplicant && $editApplicant->position ? $editApplicant->position->organization->name . ' — ' . $editApplicant->position->name : '') }}">
+                            <div id="position_dropdown" class="searchable-dropdown">
+                                <div class="searchable-option clear-option" data-value="" data-text="" onclick="selectFromDropdown('position', '', '', this)">✖ Clear</div>
+                                @foreach($activePositions as $pos)
+                                    <div class="searchable-option" data-value="{{ $pos->id }}" data-text="{{ $pos->organization->name ?? '' }} — {{ $pos->name }}"
+                                         data-subtext="Grade: {{ $pos->grade ?? 'N/A' }} | Salary: {{ $pos->salary ?? 'N/A' }}"
+                                         onclick="selectFromDropdown('position', '{{ $pos->id }}', '{{ $pos->organization->name ?? '' }} — {{ $pos->name }}', this)">
+                                        <strong>{{ $pos->organization->name ?? '' }} — {{ $pos->name }}</strong>
+                                        <div class="text-xs text-muted">Grade: {{ $pos->grade ?? 'N/A' }} | Salary: {{ $pos->salary ?? 'N/A' }}</div>
+                                    </div>
+                                @endforeach
+                            </div>
+                            <input type="hidden" name="position_id" id="position" value="{{ old('position_id', $editApplicant->position_id ?? '') }}" required>
+                        </div>
                     </div>
-                    <div class="field">
-                        <label>First Name <span style="color:red;">*</span></label>
-                        <input type="text" name="first_name" value="{{ old('first_name', $editApplicant->first_name ?? '') }}" required>
-                    </div>
-                    <div class="field">
-                        <label>Middle Name</label>
-                        <input type="text" name="middle_name" value="{{ old('middle_name', $editApplicant->middle_name ?? '') }}">
-                    </div>
-                    <div class="field">
-                        <label>Surname <span style="color:red;">*</span></label>
-                        <input type="text" name="surname" value="{{ old('surname', $editApplicant->surname ?? '') }}" required>
-                    </div>
+                    <div class="field"><label>First Name <span style="color:red;">*</span></label><input type="text" name="first_name" value="{{ old('first_name', $editApplicant->first_name ?? '') }}" required></div>
+                    <div class="field"><label>Middle Name</label><input type="text" name="middle_name" value="{{ old('middle_name', $editApplicant->middle_name ?? '') }}"></div>
+                    <div class="field"><label>Surname <span style="color:red;">*</span></label><input type="text" name="surname" value="{{ old('surname', $editApplicant->surname ?? '') }}" required></div>
                     <div class="field">
                         <label>Registration Date <span style="color:red;">*</span></label>
-                        <input type="date" name="registration_date" value="{{ old('registration_date', $editApplicant->registration_date ?? now()->format('Y-m-d')) }}" required>
+                        @php
+                            $regDate = '';
+                            if ($editApplicant && $editApplicant->registration_date) {
+                                $regDate = date('Y-m-d', strtotime($editApplicant->registration_date));
+                            }
+                            $regDate = old('registration_date', $regDate);
+                        @endphp
+                        <input type="date" name="registration_date" value="{{ $regDate }}" required>
                     </div>
                     <div class="field">
                         <label>Graduation Date</label>
-                        <input type="date" name="graduation_date" value="{{ old('graduation_date', $editApplicant->graduation_date ?? '') }}">
+                        @php
+                            $gradDate = '';
+                            if ($editApplicant && $editApplicant->graduation_date) {
+                                $gradDate = date('Y-m-d', strtotime($editApplicant->graduation_date));
+                            }
+                            $gradDate = old('graduation_date', $gradDate);
+                        @endphp
+                        <input type="date" name="graduation_date" value="{{ $gradDate }}">
                     </div>
-                    <div class="field">
-                        <label>Experience - Years <span style="color:red;">*</span></label>
-                        <input type="number" name="experience_years" min="0" step="1" value="{{ old('experience_years', $editApplicant->experience_years ?? 0) }}" required>
+                    <div class="field"><label>Exp. Years <span style="color:red;">*</span></label><input type="number" name="experience_years" min="0" value="{{ old('experience_years', $editApplicant->experience_years ?? 0) }}" required></div>
+                    <div class="field"><label>Exp. Months <span style="color:red;">*</span></label><input type="number" name="experience_months" min="0" max="11" value="{{ old('experience_months', $editApplicant->experience_months ?? 0) }}" required></div>
+                    <div class="field"><label>Academic Level <span style="color:red;">*</span></label><select name="academic_level" required>@foreach($academicLevels as $level)<option value="{{ $level }}" @if(old('academic_level', $editApplicant->academic_level ?? 'First Degree') == $level) selected @endif>{{ $level }}</option>@endforeach</select></div>
+                    <div class="field"><label>Academic Field <span style="color:red;">*</span></label><input type="text" name="academic_field" value="{{ old('academic_field', $editApplicant->academic_field ?? '') }}" placeholder="e.g., Civil Engineering" required></div>
+                    <div class="field" style="grid-column:span 2;"><label>Education Detail</label><input type="text" name="academic_detail" value="{{ old('academic_detail', $editApplicant->academic_detail ?? '') }}" placeholder="e.g., B.Sc. Degree"></div>
+                    <div class="field"><label>Primary Phone</label><input type="text" name="phone_primary" value="{{ old('phone_primary', $editApplicant->phone_primary ?? '') }}" placeholder="09..."></div>
+                    <div class="field"><label>Secondary Phone</label><input type="text" name="phone_secondary" value="{{ old('phone_secondary', $editApplicant->phone_secondary ?? '') }}" placeholder="Optional"></div>
+                    <div class="flex gap-2 items-end">
+                        <button type="submit" class="btn btn-primary">{{ $editApplicant ? '💾 Update' : '➕ Register' }}</button>
+                        @if($editApplicant)<a href="{{ route('applicants.index') }}" class="btn btn-light">Cancel</a>@endif
                     </div>
-                    <div class="field">
-                        <label>Experience - Months <span style="color:red;">*</span></label>
-                        <input type="number" name="experience_months" min="0" max="11" step="1" value="{{ old('experience_months', $editApplicant->experience_months ?? 0) }}" required>
-                    </div>
-                    <div class="field">
-                        <label>Academic Level <span style="color:red;">*</span></label>
-                        <select name="academic_level" required>
-                            @foreach($academicLevels as $level)
-                                <option value="{{ $level }}" @if(old('academic_level', $editApplicant->academic_level ?? 'First Degree') == $level) selected @endif>{{ $level }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="field">
-                        <label>Academic Field <span style="color:red;">*</span></label>
-                        <input type="text" name="academic_field" value="{{ old('academic_field', $editApplicant->academic_field ?? '') }}" placeholder="Example: Accounting or Civil Engineering" required>
-                    </div>
-                    <div class="field" style="grid-column:span 2;">
-                        <label>Qualification / Education Detail</label>
-                        <input type="text" name="academic_detail" value="{{ old('academic_detail', $editApplicant->academic_detail ?? '') }}" placeholder="Example: B.Sc. Degree, University name or specialization">
-                    </div>
-                    <div class="field">
-                        <label>Primary Phone</label>
-                        <input type="text" name="phone_primary" value="{{ old('phone_primary', $editApplicant->phone_primary ?? '') }}" placeholder="09... or +251...">
-                    </div>
-                    <div class="field">
-                        <label>Secondary Phone</label>
-                        <input type="text" name="phone_secondary" value="{{ old('phone_secondary', $editApplicant->phone_secondary ?? '') }}" placeholder="Optional">
-                    </div>
-                    <div>
-                        <button type="submit">{{ $editApplicant ? 'Update Applicant' : 'Register Applicant' }}</button>
-                    </div>
-                    @if($editApplicant)
-                        <div>
-                            <a class="btn light" href="{{ route('applicants.index') }}">Cancel Edit</a>
-                        </div>
-                    @endif
                 </form>
             @elseif($canEdit)
-                <div class="alert warning">
-                    <strong>⚠️ No positions available.</strong><br>
-                    Please add an organization and position using the forms below before registering applicants.
-                </div>
+                <div class="alert alert-warning">⚠️ No positions available. Add an organization and position first.</div>
             @else
-                <div class="alert warning">👁️ Viewer access: applicant registration is read-only.</div>
+                <div class="alert alert-info">👁️ Viewer access: read-only.</div>
             @endif
         </div>
     </div>
 
-    <!-- ============================================ -->
-    <!-- SECTION: WORK EXPERIENCE -->
-    <!-- ============================================ -->
+<!-- SECTION 2: WORK EXPERIENCE --><!-- SECTION 2: WORK EXPERIENCE --><!-- SECTION 2: WORK EXPERIENCE -->
     <div id="section-experience" class="section-card">
         <div class="card">
-            <div class="section-title">
-                <h2>💼 Applicant Work Experience Encoder</h2>
-                <span class="subtitle">Add work experience records for registered applicants</span>
-            </div>
-            
+            <div class="card-header"><div><h2>💼 Work Experience Encoder</h2><p class="subtitle">Add work experience records</p></div></div>
             @if($canEdit && $applicants->count() > 0)
-                <form method="post" class="applicant-form" action="{{ route('applicants.work-experience.store') }}">
+                <form method="post" class="form-grid" action="{{ route('applicants.work-experience.store') }}">
                     @csrf
                     <div class="field">
-                        <label>Registered Applicant <span style="color:red;">*</span></label>
-                        <select name="applicant_id" required>
-                            <option value="">Select Applicant</option>
-                            @foreach($applicants as $applicant)
-                                <option value="{{ $applicant->id }}">{{ $applicant->full_name }} ({{ $applicant->position->name ?? '' }})</option>
-                            @endforeach
-                        </select>
+                        <label>Applicant <span style="color:red;">*</span></label>
+                        <div class="searchable-wrapper">
+                            <input type="text" class="searchable-input" id="work_applicant_search" placeholder="🔍 Search applicant..." autocomplete="off"
+                                   onfocus="toggleDropdown('work_applicant', true)" onkeyup="filterDropdown('work_applicant')">
+                            <div id="work_applicant_dropdown" class="searchable-dropdown">
+                                <div class="searchable-option clear-option" data-value="" data-text="" onclick="selectFromDropdown('work_applicant', '', '', this)">✖ Clear</div>
+                                @foreach($applicants as $app)
+                                    <div class="searchable-option" data-value="{{ $app->id }}" data-text="{{ $app->full_name }}"
+                                         data-subtext="{{ $app->position->name ?? 'No Position' }} | {{ $app->phone_primary ?? '' }}"
+                                         onclick="selectFromDropdown('work_applicant', '{{ $app->id }}', '{{ $app->full_name }}', this)">
+                                        <strong>{{ $app->full_name }}</strong>
+                                        <div class="text-xs text-muted">{{ $app->position->name ?? 'No Position' }} | 📱 {{ $app->phone_primary ?? 'N/A' }}</div>
+                                    </div>
+                                @endforeach
+                            </div>
+                            <input type="hidden" name="applicant_id" id="work_applicant" required>
+                        </div>
                     </div>
-                    <div class="field">
-                        <label>Company <span style="color:red;">*</span></label>
-                        <input type="text" name="company" placeholder="e.g., ABC Construction" required>
-                    </div>
-                    <div class="field">
-                        <label>Job Title <span style="color:red;">*</span></label>
-                        <input type="text" name="job_title" placeholder="e.g., Site Engineer" required>
-                    </div>
-                    <div class="field">
-                        <label>Start Date</label>
-                        <input type="date" name="start_date">
-                    </div>
-                    <div class="field">
-                        <label>End Date</label>
-                        <input type="date" name="end_date">
-                    </div>
-                    <div class="field">
-                        <label>Specific to Position</label>
-                        <select name="specific_to_position">
-                            <option value="0">No</option>
-                            <option value="1">Yes</option>
-                        </select>
-                    </div>
-                    <div class="field">
-                        <label>Specific Position Title</label>
-                        <input type="text" name="specific_position_title" placeholder="Example: Office Engineer">
-                    </div>
-                    <div class="field" style="grid-column:span 2;">
-                        <label>Notes (Optional)</label>
-                        <input type="text" name="notes" placeholder="Additional details about this experience">
-                    </div>
-                    <div>
-                        <button type="submit">➕ Add Work Experience</button>
-                    </div>
+                    <div class="field"><label>Company <span style="color:red;">*</span></label><input type="text" name="company" required></div>
+                    <div class="field"><label>Job Title <span style="color:red;">*</span></label><input type="text" name="job_title" required></div>
+                    <div class="field"><label>Start Date</label><input type="date" name="start_date"></div>
+                    <div class="field"><label>End Date</label><input type="date" name="end_date"></div>
+                    <div class="field"><label>Relevant to Position</label><select name="specific_to_position"><option value="0">No</option><option value="1">Yes</option></select></div>
+                    <div class="field"><label>Specific Title</label><input type="text" name="specific_position_title"></div>
+                    <div class="field" style="grid-column:span 2;"><label>Notes</label><input type="text" name="notes"></div>
+                    <div><button type="submit" class="btn btn-primary">➕ Add Experience</button></div>
                 </form>
-            @elseif($canEdit && $applicants->count() == 0)
-                <div class="alert warning">
-                    <strong>⚠️ No applicants registered.</strong><br>
-                    Please <a href="#registration-form" style="color:#1b7f79; font-weight:600;">register an applicant</a> first before adding work experience.
-                </div>
+            @elseif($canEdit)
+                <div class="alert alert-warning">⚠️ No applicants. <a href="#registration-form" onclick="switchSection('registration')">Register one first</a>.</div>
             @else
-                <div class="small">👁️ Viewer access: work experience is read-only.</div>
+                <p class="text-sm text-muted">👁️ Viewer access.</p>
             @endif
-
-            <div class="table-wrap">
+            <div class="table-wrap mt-4">
                 <table>
-                    <thead>
-                        <tr>
-                            <th>Applied Position</th>
-                            <th>Applicant</th>
-                            <th>Company</th>
-                            <th>Work Experience</th>
-                            <th>Start</th>
-                            <th>End</th>
-                            <th>Duration</th>
-                            <th>Specific Position</th>
-                            <th style="text-align:center;">Action</th>
-                        </tr>
-                    </thead>
+                    <thead><tr><th>Position</th><th>Applicant</th><th>Company</th><th>Job Title</th><th>Start</th><th>End</th><th>Duration</th><th>Relevant</th><th class="text-center">Action</th></tr></thead>
                     <tbody>
-                        @php $hasExperience = false; @endphp
-                        @foreach($allWorkExperiences as $applicantId => $experiences)
+                        @php $hasExp = false; @endphp
+                        @foreach($allWorkExperiences as $experiences)
                             @foreach($experiences as $exp)
-                                @php $hasExperience = true; @endphp
+                                @php $hasExp = true; @endphp
                                 <tr>
-                                    <td><span class="badge" style="background:#e8f3f2; color:#0c625e;">{{ $exp->applicant->position->name ?? 'N/A' }}</span></td>
+                                    <td><span class="badge badge-teal">{{ $exp->applicant->position->name ?? 'N/A' }}</span></td>
                                     <td><strong>{{ $exp->applicant->full_name ?? '' }}</strong></td>
-                                    <td><strong>{{ $exp->company }}</strong></td>
+                                    <td>{{ $exp->company }}</td>
                                     <td>{{ $exp->job_title }}</td>
-                                    <td>{{ $exp->start_date ? \Carbon\Carbon::parse($exp->start_date)->format('M d, Y') : '-' }}</td>
-                                    <td>{{ $exp->end_date ? \Carbon\Carbon::parse($exp->end_date)->format('M d, Y') : '-' }}</td>
-                                    <td><span class="badge" style="background:#dce5ee; color:#253b50;">{{ $exp->duration }}</span></td>
-                                    <td>@if($exp->specific_to_position)<span class="badge" style="background:#dcf5e7; color:#12643c;">✅ {{ $exp->specific_position_title ?: 'Yes' }}</span>@else<span class="badge" style="background:#eee; color:#666;">❌ No</span>@endif</td>
-                                    <td style="text-align:center;">
+                                    <td>{{ $exp->start_date ? \Carbon\Carbon::parse($exp->start_date)->format('M Y') : '-' }}</td>
+                                    <td>{{ $exp->end_date ? \Carbon\Carbon::parse($exp->end_date)->format('M Y') : '-' }}</td>
+                                    <td><span class="badge badge-muted">{{ $exp->duration }}</span></td>
+                                    <td>@if($exp->specific_to_position)<span class="badge badge-success">✅ {{ $exp->specific_position_title ?: 'Yes' }}</span>@else<span class="badge badge-muted">❌ No</span>@endif</td>
+                                    <td class="text-center">
                                         @if($canEdit)
-                                            <form method="post" style="display:inline;" action="{{ route('applicants.work-experience.destroy', $exp->id) }}" onsubmit="return confirm('Delete this work experience record?');">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button class="btn danger btn-sm" type="submit">🗑️</button>
+                                            <form method="post" style="display:inline;" action="{{ route('applicants.work-experience.destroy', $exp->id) }}" onsubmit="return confirm('Delete?');">
+                                                @csrf @method('DELETE')<button class="btn btn-danger btn-xs">🗑️</button>
                                             </form>
                                         @endif
                                     </td>
                                 </tr>
                             @endforeach
                         @endforeach
-                        @if(!$hasExperience)
-                            <tr><td colspan="9"><div class="empty-state"><div class="icon">📭</div><h4>No work experience records</h4><p>Add work experience using the form above.</p></div></td></tr>
-                        @endif
+                        @if(!$hasExp)<tr><td colspan="9"><div class="empty-state">📭 No records</div></td></tr>@endif
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    <!-- ============================================ -->
-    <!-- SECTION: COMMITTEE REVIEW -->
-    <!-- ============================================ -->
+    <!-- SECTION 3: COMMITTEE REVIEW -->
     <div id="section-review" class="section-card">
         <div class="card" id="committee-review">
-            <div class="section-title">
-                <h2>🎯 Recruitment Committee Screening / Selection Form</h2>
-                <span class="subtitle">Pull applicant information from registration record</span>
-            </div>
+            <div class="card-header"><div><h2>🎯 Committee Screening & Selection</h2><p class="subtitle">Select an applicant below to review</p></div></div>
+            <form method="get" action="{{ route('applicants.index') }}">
+                <div class="applicant-list-panel">
+                    <div class="applicant-list-header">
+                        <div style="display:flex; gap:12px; align-items:center;">
+                            <div style="flex:1;"><input type="text" id="review_applicant_search" placeholder="🔍 Type to filter applicants..." autocomplete="off" style="width:100%; padding:10px 14px; border:1px solid #bac8d6; border-radius:6px; font-size:13px;" onkeyup="filterReviewList()" value="{{ $reviewApplicant ? $reviewApplicant->full_name : '' }}"></div>
+                            <div style="font-size:12px; color:var(--muted); white-space:nowrap;"><span id="review_count">{{ $applicants->count() }}</span> applicants</div>
+                        </div>
+                    </div>
+                    <div class="applicant-list-body" id="review_list">
+                        @foreach($applicants as $app)
+                            @php $dec = $app->selection->decision ?? 'Pending'; $dc = ['Selected'=>['bg'=>'#dcf5e7','color'=>'#18794e'],'Rejected'=>['bg'=>'#ffeded','color'=>'#a61b1b'],'Shortlisted'=>['bg'=>'#e6e3ff','color'=>'#4b3bad'],'Reserve'=>['bg'=>'#dff3ff','color'=>'#0d6289']][$dec]??['bg'=>'#fff5e5','color'=>'#a45100']; @endphp
+                            <div class="applicant-list-item review-item {{ $reviewApplicant && $reviewApplicant->id == $app->id ? 'selected' : '' }}"
+                                 data-id="{{ $app->id }}" data-name="{{ $app->full_name }}"
+                                 data-search="{{ strtolower($app->full_name.' '.($app->position->name??'').' '.($app->phone_primary??'')) }}"
+                                 onclick="selectReviewItem('{{ $app->id }}', '{{ $app->full_name }}', this)">
+                                <div class="info"><div class="name">{{ $loop->iteration }}. {{ $app->full_name }}</div><div class="meta"><span>📌 {{ $app->position->name ?? 'No Position' }}</span><span>📱 {{ $app->phone_primary ?? 'N/A' }}</span><span>📅 {{ $app->registration_date }}</span></div></div>
+                                <span class="badge" style="background:{{ $dc['bg'] }}; color:{{ $dc['color'] }}; flex-shrink:0;">{{ $dec }}</span>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+                <input type="hidden" name="review_applicant" id="review_applicant" value="{{ $reviewApplicant->id ?? '' }}">
+                <div class="text-right mt-3"><button type="submit" class="btn btn-primary" style="padding:12px 28px;">📂 Load Candidate Review</button></div>
+            </form>
+            @if($reviewApplicant)
+                <div class="highlight-box mt-4" style="border:2px solid var(--accent);">
+                    <h3 style="color:var(--accent);">👤 {{ $reviewApplicant->full_name }}</h3>
+                    <table>
+                        <tr><th>Organization</th><td>{{ $reviewApplicant->position->organization->name??'' }}</td><th>Position</th><td>{{ $reviewApplicant->position->name??'' }}</td></tr>
+                        <tr><th>Academic</th><td>{{ $reviewApplicant->academic_level }} — {{ $reviewApplicant->academic_field }}</td><th>Experience</th><td>{{ $reviewApplicant->experience_years }}yr {{ $reviewApplicant->experience_months }}mo</td></tr>
+                        <tr><th>Phone</th><td>{{ $reviewApplicant->phone_primary }}{{ $reviewApplicant->phone_secondary?' / '.$reviewApplicant->phone_secondary:'' }}</td><th>Registration</th><td>{{ $reviewApplicant->registration_date }}</td></tr>
+                    </table>
+                    <h4 class="mt-4">💼 Work Experience</h4>
+                    <div class="table-wrap"><table><thead><tr><th>Company</th><th>Job Title</th><th>Start</th><th>End</th><th>Duration</th><th>Relevant</th></tr></thead><tbody>@forelse($reviewExperiences as $exp)<tr><td>{{ $exp->company }}</td><td>{{ $exp->job_title }}</td><td>{{ $exp->start_date??'-' }}</td><td>{{ $exp->end_date??'-' }}</td><td>{{ $exp->duration }}</td><td>{{ $exp->specific_to_position?'✅ Yes':'❌ No' }}</td></tr>@empty<tr><td colspan="6"><div class="empty-state">No records</div></td></tr>@endforelse</tbody></table></div>
+                </div>
+                <form method="post" class="section-gap" action="{{ route('applicants.review.save') }}">
+                    @csrf<input type="hidden" name="applicant_id" value="{{ $reviewApplicant->id }}">
+                    <div class="card"><h3>📊 Selection Criteria</h3>
+                        <div class="table-wrap"><table><thead><tr><th>Criterion</th><th class="num">Weight</th><th class="num">Max</th><th class="num">Pass</th><th>Score</th><th>Comment</th></tr></thead><tbody>@forelse($reviewCriteria as $c)@php $s=$reviewScores[$c->id]??null; @endphp<tr><td>{{ $c->criterion_name }}</td><td class="num">{{ number_format($c->weight,1) }}</td><td class="num">{{ number_format($c->max_score,1) }}</td><td class="num">{{ number_format($c->pass_mark,1) }}</td><td><input style="width:100px;" type="number" name="criterion_score_{{ $c->id }}" min="0" max="{{ $c->max_score }}" step="0.01" value="{{ old('criterion_score_'.$c->id,$s->score??'') }}" @if(!$canEdit) disabled @endif></td><td><input type="text" name="criterion_comment_{{ $c->id }}" value="{{ old('criterion_comment_'.$c->id,$s->comment??'') }}" @if(!$canEdit) disabled @endif></td></tr>@empty<tr><td colspan="6"><div class="empty-state">No criteria</div></td></tr>@endforelse</tbody></table></div></div>
+                    <div class="form-grid section-gap">
+                        <div class="field" style="grid-column:span 2;"><label>Committee Members</label><input type="text" name="committee_members" value="{{ old('committee_members',$reviewApplicant->selection->committee_members??'') }}"></div>
+                        <div class="field"><label>Review Date</label><input type="date" name="review_date" value="{{ old('review_date',$reviewApplicant->selection->review_date??now()->format('Y-m-d')) }}"></div>
+                        <div class="field"><label>Rank</label><input type="number" name="rank_no" min="0" value="{{ old('rank_no',$reviewApplicant->selection->rank_no??0) }}"></div>
+                        <div class="field"><label>Decision</label><select name="decision" required>@foreach($decisions as $d)<option value="{{ $d }}" @if(old('decision',$reviewApplicant->selection->decision??'Pending')==$d) selected @endif>{{ $d }}</option>@endforeach</select></div>
+                        <div class="field" style="grid-column:span 3;"><label>Remarks</label><textarea name="remarks" rows="2">{{ old('remarks',$reviewApplicant->selection->remarks??'') }}</textarea></div>
+                        @if($canEdit && $reviewCriteria->count()>0)<div><button type="submit" class="btn btn-primary">💾 Save Screening</button></div>@endif
+                    </div>
+                </form>
+            @endif
+        </div>
+    </div>
 
-            <form method="get" action="{{ route('applicants.index') }}" class="inline-form">
-                <div class="field" style="min-width:300px;">
-                    <label>Select an Existing Registered Applicant</label>
-                    <select name="review_applicant" required>
-                        <option value="">Select Applicant</option>
-                        @foreach($applicants as $applicant)
-                            <option value="{{ $applicant->id }}" @if($reviewApplicant && $reviewApplicant->id == $applicant->id) selected @endif>
-                                {{ $applicant->full_name }} ({{ $applicant->position->name ?? '' }})
-                            </option>
+    <!-- SECTION 4: APPLICANT LIST -->
+    <div id="section-list" class="section-card">
+        <div class="card">
+            <div class="card-header"><div><h2>📋 Applicant Details & Status</h2><p class="subtitle">{{ $applicants->count() }} applicants</p></div></div>
+            <div class="table-wrap"><table><thead><tr><th>#</th><th>Date</th><th>Organization</th><th>Position</th><th>Full Name</th><th>Academic</th><th>Field</th><th>Phone</th><th class="num">Score</th><th class="num">Rank</th><th>Decision</th><th class="text-center">Actions</th></tr></thead><tbody>@forelse($applicants as $index => $app)@php $dec=$app->selection->decision??'Pending';$badgeMap=['Selected'=>'badge-success','Rejected'=>'badge-danger','Shortlisted'=>'badge-purple','Reserve'=>'badge-info'];$badge=$badgeMap[$dec]??'badge-warning';@endphp<tr><td>{{ $index+1 }}</td><td>{{ $app->registration_date }}</td><td>{{ $app->position->organization->name??'' }}</td><td>{{ $app->position->name??'' }}</td><td><strong>{{ $app->full_name }}</strong></td><td>{{ $app->academic_level }}</td><td>{{ $app->academic_field }}</td><td>{{ $app->phone_primary }}</td><td class="num">{{ number_format($app->selection->final_score??0,2) }}</td><td class="num">{{ $app->selection->rank_no??'-' }}</td><td><span class="badge {{ $badge }}">{{ $dec }}</span></td><td class="text-center">@if($canEdit)<div class="flex gap-2 items-center" style="justify-content:center;"><a href="{{ route('applicants.index',['edit_registration'=>$app->id]) }}#registration-form" class="btn btn-light btn-xs">✏️</a><a href="{{ route('applicants.index',['review_applicant'=>$app->id]) }}#committee-review" class="btn btn-blue btn-xs">📋</a><a href="{{ url('/applicants/profile/'.$app->id) }}" class="btn btn-orange btn-xs">📄</a><form method="post" style="display:inline;" action="{{ route('applicants.destroy',$app->id) }}" onsubmit="return confirm('Delete?');">@csrf @method('DELETE')<button class="btn btn-danger btn-xs">🗑️</button></form></div>@endif</td></tr>@empty<tr><td colspan="12"><div class="empty-state">📭 No records</div></td></tr>@endforelse</tbody></table></div>
+        </div>
+    </div>
+
+    <!-- SECTION 5: EXPERIENCE CALCULATION & RANKING (NEW) -->
+    <div id="section-calculation" class="section-card">
+        <!-- Experience Calculation -->
+        <div class="card">
+            <div class="card-header"><div><h2>📊 Experience Calculation</h2><p class="subtitle">Auto-calculate total and specific experience from work records</p></div></div>
+            <div style="display:flex; gap:10px; align-items:end; flex-wrap:wrap;">
+                <div class="field" style="min-width:250px;">
+                    <label>Select Applicant</label>
+                    <select id="experience_applicant" onchange="calculateExperience()">
+                        <option value="">-- Select Applicant --</option>
+                        @foreach($applicants as $app)
+                            <option value="{{ $app->id }}">{{ $app->full_name }}</option>
                         @endforeach
                     </select>
                 </div>
-                <button type="submit">📂 Load Candidate Review</button>
-            </form>
-
-            @if($reviewApplicant)
-                <div class="highlight-box" style="margin-top:14px;">
-                    <h3>👤 Candidate Profile</h3>
-                    <table>
-                        <tbody>
-                            <tr><th>Organization</th><td>{{ $reviewApplicant->position->organization->name ?? '' }}</td><th>Application Position</th><td>{{ $reviewApplicant->position->name ?? '' }}</td><th>Registration Date</th><td>{{ $reviewApplicant->registration_date }}</td></tr>
-                            <tr><th>Applicant Name</th><td><strong>{{ $reviewApplicant->full_name }}</strong></td><th>Academic Background</th><td>{{ $reviewApplicant->academic_level }} — {{ $reviewApplicant->academic_field }}</td><th>Graduation Date</th><td>{{ $reviewApplicant->graduation_date ?? '-' }}</td></tr>
-                            <tr><th>Total Experience</th><td>{{ $reviewApplicant->experience_years }} year(s), {{ $reviewApplicant->experience_months }} month(s)</td><th>Cell Phone</th><td colspan="3">{{ $reviewApplicant->phone_primary }} {{ $reviewApplicant->phone_secondary ? '/ ' . $reviewApplicant->phone_secondary : '' }}</td></tr>
-                            <tr><th>Grade</th><td>{{ $reviewApplicant->position->grade ?? '' }}</td><th>Salary</th><td>{{ $reviewApplicant->position->salary ?? '' }}</td><th>Requirement Type</th><td>{{ $reviewApplicant->position->requirement_type ?? '' }}</td></tr>
-                            <tr><th>Position Requirements</th><td colspan="5">{{ $reviewApplicant->position->criteria ?? '' }}</td></tr>
-                        </tbody>
-                    </table>
-
-                    <h3 style="margin-top:16px;">💼 Work Experience</h3>
-                    <div class="table-wrap">
-                        <table>
-                            <thead><tr><th>Company</th><th>Job Title</th><th>Start</th><th>End</th><th>Duration</th><th>Relevant</th></tr></thead>
-                            <tbody>
-                                @forelse($reviewExperiences as $exp)
-                                    <tr><td>{{ $exp->company }}</td><td>{{ $exp->job_title }}</td><td>{{ $exp->start_date ?? '-' }}</td><td>{{ $exp->end_date ?? '-' }}</td><td>{{ $exp->duration }}</td><td>{{ $exp->specific_to_position ? 'Yes' : 'No' }}</td></tr>
-                                @empty
-                                    <tr><td colspan="6"><div class="empty-state"><p>No work experience records</p></div></td></tr>
-                                @endforelse
-                            </tbody>
-                        </table>
+                <button type="button" class="btn" style="background:#397a9f;" onclick="calculateExperience()">🔄 Calculate</button>
+            </div>
+            <div id="experience_result" style="display:none; margin-top:16px;">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                    <div class="exp-result-card" style="border-left:4px solid #1b7f79;">
+                        <h4 style="margin:0 0 8px;">📈 Total Experience</h4>
+                        <div id="total_experience_display" class="exp-value" style="color:#1b7f79;">-</div>
+                        <div class="text-sm text-muted">All work experience combined</div>
+                    </div>
+                    <div class="exp-result-card" style="border-left:4px solid #397a9f;">
+                        <h4 style="margin:0 0 8px;">🎯 Specific Experience</h4>
+                        <div id="specific_experience_display" class="exp-value" style="color:#397a9f;">-</div>
+                        <div class="text-sm text-muted">Relevant to applied position</div>
                     </div>
                 </div>
-
-                <form method="post" class="section-gap" action="{{ route('applicants.review.save') }}" style="margin-top:16px;">
-                    @csrf
-                    <input type="hidden" name="applicant_id" value="{{ $reviewApplicant->id }}">
-
-                    <div class="card">
-                        <h3>📊 Selection Criteria</h3>
-                        <div class="small">Criteria and weights come from Recruitment Settings. Final score is calculated automatically.</div>
-                        <div class="table-wrap">
-                            <table>
-                                <thead><tr><th>Criterion</th><th class="num">Weight %</th><th class="num">Maximum</th><th class="num">Pass Mark</th><th>Score</th><th>Comment</th></tr></thead>
-                                <tbody>
-                                    @forelse($reviewCriteria as $criterion)
-                                        @php $saved = $reviewScores[$criterion->id] ?? null; @endphp
-                                        <tr>
-                                            <td>{{ $criterion->criterion_name }}</td>
-                                            <td class="num">{{ number_format($criterion->weight, 1) }}</td>
-                                            <td class="num">{{ number_format($criterion->max_score, 1) }}</td>
-                                            <td class="num">{{ number_format($criterion->pass_mark, 1) }}</td>
-                                            <td><input style="width:110px;" type="number" name="criterion_score_{{ $criterion->id }}" min="0" max="{{ $criterion->max_score }}" step="0.01" value="{{ old('criterion_score_' . $criterion->id, $saved->score ?? '') }}" @if(!$canEdit) disabled @endif></td>
-                                            <td><input type="text" name="criterion_comment_{{ $criterion->id }}" value="{{ old('criterion_comment_' . $criterion->id, $saved->comment ?? '') }}" placeholder="Comment" @if(!$canEdit) disabled @endif></td>
-                                        </tr>
-                                    @empty
-                                        <tr><td colspan="6"><div class="empty-state"><p>No selection criteria configured</p></div></td></tr>
-                                    @endforelse
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <div class="applicant-form section-gap">
-                        <div class="field" style="grid-column:span 2;"><label>👥 Committee Members</label><input type="text" name="committee_members" value="{{ old('committee_members', $reviewApplicant->selection->committee_members ?? '') }}" placeholder="Names separated by commas"></div>
-                        <div class="field"><label>📅 Review Date</label><input type="date" name="review_date" value="{{ old('review_date', $reviewApplicant->selection->review_date ?? now()->format('Y-m-d')) }}"></div>
-                        <div class="field"><label>🏆 Rank</label><input type="number" name="rank_no" min="0" step="1" value="{{ old('rank_no', $reviewApplicant->selection->rank_no ?? 0) }}"></div>
-                        <div class="field"><label>🎯 Decision</label><select name="decision" required>@foreach($decisions as $decision)<option value="{{ $decision }}" @if(old('decision', $reviewApplicant->selection->decision ?? 'Pending') == $decision) selected @endif>{{ $decision }}</option>@endforeach</select></div>
-                        <div class="field" style="grid-column:span 3;"><label>📝 Final Remarks</label><textarea name="remarks" rows="2">{{ old('remarks', $reviewApplicant->selection->remarks ?? '') }}</textarea></div>
-                        @if($canEdit && $reviewCriteria->count() > 0)<div><button type="submit">💾 Save Committee Screening</button></div>@endif
-                    </div>
-                </form>
-            @endif
-        </div>
-    </div>
-
-    <!-- ============================================ -->
-    <!-- SECTION: APPLICANT LIST -->
-    <!-- ============================================ -->
-    <div id="section-list" class="section-card">
-        <div class="card">
-            <div class="section-title">
-                <h2>📋 Applicant Details and Selection Status</h2>
-                <span class="subtitle">{{ $applicants->count() }} applicants found</span>
+                <div style="margin-top:16px;"><h4>💼 Work Experience Details</h4><div id="experience_details" class="table-wrap"></div></div>
             </div>
-            <div class="table-wrap">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Registration Date</th>
-                            <th>Organization</th>
-                            <th>Position</th>
-                            <th>Full Name</th>
-                            <th>Academic Level</th>
-                            <th>Academic Field</th>
-                            <th>Graduation Date</th>
-                            <th>Phone</th>
-                            <th class="num">Final Score</th>
-                            <th class="num">Rank</th>
-                            <th>Decision</th>
-                            <th style="text-align:center;">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($applicants as $index => $applicant)
-                            <tr>
-                                <td>{{ $index + 1 }}</td>
-                                <td>{{ $applicant->registration_date }}</td>
-                                <td>{{ $applicant->position->organization->name ?? '' }}</td>
-                                <td>{{ $applicant->position->name ?? '' }}</td>
-                                <td><strong>{{ $applicant->full_name }}</strong></td>
-                                <td>{{ $applicant->academic_level }}</td>
-                                <td>{{ $applicant->academic_field }}</td>
-                                <td>{{ $applicant->graduation_date ?? '-' }}</td>
-                                <td>{{ $applicant->phone_primary }}</td>
-                                <td class="num">{{ number_format($applicant->selection->final_score ?? 0, 2) }}</td>
-                                <td class="num">{{ $applicant->selection->rank_no ?? '-' }}</td>
-                                <td>
-                                    @php
-                                        $decision = $applicant->selection->decision ?? 'Pending';
-                                        $badgeClass = $decision == 'Selected' ? 'selected' : ($decision == 'Rejected' ? 'rejected' : ($decision == 'Shortlisted' ? 'shortlisted' : ($decision == 'Reserve' ? 'reserve' : 'pending')));
-                                    @endphp
-                                    <span class="badge-status {{ $badgeClass }}">{{ $decision }}</span>
-                                </td>
-                                <td style="text-align:center;">
-                                    @if($canEdit)
-                                        <div style="display:flex; gap:4px; justify-content:center; flex-wrap:wrap;">
-                                            <a class="btn light btn-sm" href="{{ route('applicants.index', ['edit_registration' => $applicant->id]) }}#registration-form">✏️</a>
-                                            <a class="btn btn-blue btn-sm" href="{{ route('applicants.index', ['review_applicant' => $applicant->id]) }}#committee-review">📋</a>
-                                            <a class="btn btn-orange btn-sm" href="{{ url('/applicants/profile/' . $applicant->id) }}">📄</a>
-                                            <form method="post" style="display:inline;" action="{{ route('applicants.destroy', $applicant->id) }}" onsubmit="return confirm('Delete this applicant?');">
-                                                @csrf @method('DELETE')
-                                                <button class="btn danger btn-sm" type="submit">🗑️</button>
-                                            </form>
-                                        </div>
-                                    @endif
-                                </td>
-                            </tr>
-                        @empty
-                            <tr><td colspan="13"><div class="empty-state"><div class="icon">📭</div><h4>No applicant records found</h4><p>Register an applicant using the form above.</p></div></td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
+        </div>
+
+        <!-- Ranking -->
+        <div class="card section-gap">
+            <div class="card-header"><div><h2>🏆 Candidate Ranking</h2><p class="subtitle">Auto-ranking based on final scores</p></div></div>
+            <div style="display:flex; gap:10px; align-items:end; flex-wrap:wrap;">
+                <div class="field" style="min-width:250px;">
+                    <label>Select Position</label>
+                    <select id="ranking_position" onchange="getRanking()">
+                        <option value="">-- Select Position --</option>
+                        @foreach($positions as $pos)
+                            <option value="{{ $pos->id }}">{{ $pos->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <button type="button" class="btn" style="background:#d38b2a;" onclick="getRanking()">📊 Show Ranking</button>
+                <button type="button" class="btn btn-secondary" onclick="updateRanks()">🔄 Update Ranks</button>
+            </div>
+            <div id="ranking_result" style="display:none; margin-top:16px;">
+                <div class="table-wrap"><table><thead><tr><th>Rank</th><th>Candidate</th><th>Position</th><th class="num">Final Score</th><th>Decision</th></tr></thead><tbody id="ranking_body"></tbody></table></div>
             </div>
         </div>
     </div>
 
-    <!-- ============================================ -->
-    <!-- SECTION: POSITIONS & ORGANIZATIONS -->
-    <!-- ============================================ -->
+    <!-- SECTION 6: POSITIONS -->
     <div id="section-positions" class="section-card">
         @if($canEdit)
-            <!-- Organization Settings -->
-            <div class="card">
-                <div class="section-title">
-                    <h2>🏢 Recruitment Organization Settings</h2>
-                    <span class="subtitle">Add organizations before creating positions</span>
-                </div>
-                <form method="post" class="inline-form" action="{{ route('applicants.organizations.store') }}">
-                    @csrf
-                    <div class="field"><label>Organization Name</label><input type="text" name="name" placeholder="Example: TNT or another company" required></div>
-                    <button type="submit">Add Organization</button>
-                </form>
-                <div class="table-wrap">
-                    <table>
-                        <thead><tr><th>Organization</th><th>Status</th><th>Action</th></tr></thead>
-                        <tbody>
-                            @forelse($organizations as $org)
-                                <tr><td><strong>{{ $org->name }}</strong></td><td><span class="badge-status {{ $org->active ? 'active' : 'inactive' }}">{{ $org->active ? 'Active' : 'Inactive' }}</span></td>
-                                    <td><form method="post" style="display:inline;" action="{{ route('applicants.organizations.destroy', $org->id) }}">@csrf @method('DELETE')<button class="btn danger btn-sm" onclick="return confirm('Delete this organization?')">Delete</button></form></td></tr>
-                            @empty
-                                <tr><td colspan="3"><div class="empty-state"><p>No organizations configured</p></div></td></tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Add Position -->
-            <div class="card section-gap">
-                <div class="section-title">
-                    <h2>➕ Add Application Position</h2>
-                    <span class="subtitle">Create a new position under an organization</span>
-                </div>
-                <form method="post" class="applicant-form" action="{{ route('applicants.positions.store') }}">
-                    @csrf
-                    <div class="field"><label>Organization <span style="color:red;">*</span></label><select name="organization_id" required><option value="">-- Select --</option>@foreach($activeOrganizations as $org)<option value="{{ $org->id }}">{{ $org->name }}</option>@endforeach</select></div>
-                    <div class="field"><label>Position Name <span style="color:red;">*</span></label><input type="text" name="name" placeholder="e.g., Project Manager" required></div>
-                    <div class="field"><label>Grade</label><input type="text" name="grade" placeholder="e.g., Grade I"></div>
-                    <div class="field"><label>Salary</label><input type="text" name="salary" placeholder="e.g., 50,000 - 70,000"></div>
-                    <div class="field"><label>Requirement Type</label><input type="text" name="requirement_type" placeholder="e.g., Full-time"></div>
-                    <div class="field" style="grid-column:span 3;"><label>Position Requirements / Criteria</label><textarea name="criteria" rows="2" placeholder="Describe the position requirements"></textarea></div>
-                    <div><button type="submit">Add Position</button></div>
-                </form>
-            </div>
-
-            <!-- Update Position -->
-            <div class="card section-gap" style="border: 2px solid #397a9f; background: #f8fbfd;">
-                <div class="section-title">
-                    <h2 style="color: #16324f;">✏️ Update Application Position</h2>
-                    <span class="subtitle">Select a position to update its details</span>
-                </div>
-                <form method="POST" action="{{ route('applicants.positions.update') }}" class="applicant-form">
-                    @csrf @method('PUT')
-                    <div class="field"><label>Position to Update <span style="color:red;">*</span></label><select name="position_id" id="update_position_select" required><option value="">-- Select --</option>@foreach($positions as $pos)<option value="{{ $pos->id }}" data-org="{{ $pos->organization_id }}" data-name="{{ $pos->name }}" data-grade="{{ $pos->grade }}" data-salary="{{ $pos->salary }}" data-requirement="{{ $pos->requirement_type }}" data-criteria="{{ $pos->criteria }}">{{ $pos->organization->name ?? 'No Org' }} — {{ $pos->name }}</option>@endforeach</select></div>
-                    <div class="field"><label>Organization <span style="color:red;">*</span></label><select name="organization_id" id="update_org_id" required><option value="">-- Select --</option>@foreach($organizations as $org)<option value="{{ $org->id }}">{{ $org->name }}</option>@endforeach</select></div>
-                    <div class="field"><label>Position Name <span style="color:red;">*</span></label><input type="text" name="name" id="update_name" placeholder="Position name" required></div>
-                    <div class="field"><label>Grade</label><input type="text" name="grade" id="update_grade" placeholder="e.g., Grade I"></div>
-                    <div class="field"><label>Salary</label><input type="text" name="salary" id="update_salary" placeholder="e.g., 50,000 - 70,000"></div>
-                    <div class="field"><label>Requirement Type</label><input type="text" name="requirement_type" id="update_requirement" placeholder="e.g., Full-time"></div>
-                    <div class="field" style="grid-column:span 3;"><label>Position Requirements / Criteria</label><textarea name="criteria" id="update_criteria" rows="2" placeholder="Describe the position requirements"></textarea></div>
-                    <div><button type="submit" class="btn" style="background:#397a9f;">Update Position</button><button type="reset" class="btn light" onclick="document.getElementById('update_position_select').value='';">Clear</button></div>
-                </form>
-            </div>
-
-            <!-- Position List -->
-            <div class="card section-gap">
-                <div class="section-title">
-                    <h2>📋 Application Positions List</h2>
-                    <span class="subtitle">{{ $positions->count() }} positions configured</span>
-                </div>
-                <div class="table-wrap">
-                    <table>
-                        <thead><tr><th>Organization</th><th>Position</th><th>Grade</th><th>Salary</th><th>Requirement</th><th>Action</th></tr></thead>
-                        <tbody>
-                            @forelse($positions as $pos)
-                                <tr><td>{{ $pos->organization->name ?? '' }}</td><td><strong>{{ $pos->name }}</strong></td><td>{{ $pos->grade ?: '-' }}</td><td>{{ $pos->salary ?: '-' }}</td><td>{{ $pos->requirement_type ?: '-' }}</td>
-                                    <td><form method="post" style="display:inline;" action="{{ route('applicants.positions.destroy', $pos->id) }}">@csrf @method('DELETE')<button class="btn danger btn-sm" onclick="return confirm('Delete this position?')">Delete</button></form></td></tr>
-                            @empty
-                                <tr><td colspan="6"><div class="empty-state"><p>No positions configured</p></div></td></tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+            <div class="card"><div class="card-header"><h2>🏢 Organizations</h2></div><form method="post" class="flex gap-2 items-end" action="{{ route('applicants.organizations.store') }}">@csrf<div class="field" style="flex:1;"><label>Name</label><input type="text" name="name" required></div><button type="submit" class="btn btn-primary">Add</button></form><div class="table-wrap mt-3"><table><thead><tr><th>Organization</th><th>Status</th><th>Action</th></tr></thead><tbody>@forelse($organizations as $org)<tr><td><strong>{{ $org->name }}</strong></td><td><span class="badge {{ $org->active?'badge-success':'badge-muted' }}">{{ $org->active?'Active':'Inactive' }}</span></td><td><form method="post" style="display:inline;" action="{{ route('applicants.organizations.destroy',$org->id) }}">@csrf @method('DELETE')<button class="btn btn-danger btn-xs">🗑️</button></form></td></tr>@empty<tr><td colspan="3"><div class="empty-state">No organizations</div></td></tr>@endforelse</tbody></table></div></div>
+            <div class="card section-gap"><div class="card-header"><h2>➕ Add Position</h2></div><form method="post" class="form-grid" action="{{ route('applicants.positions.store') }}">@csrf<div class="field"><label>Organization <span style="color:red;">*</span></label><select name="organization_id" required>@foreach($activeOrganizations as $org)<option value="{{ $org->id }}">{{ $org->name }}</option>@endforeach</select></div><div class="field"><label>Name <span style="color:red;">*</span></label><input type="text" name="name" required></div><div class="field"><label>Grade</label><input type="text" name="grade"></div><div class="field"><label>Salary</label><input type="text" name="salary"></div><div class="field"><label>Type</label><input type="text" name="requirement_type"></div><div class="field" style="grid-column:span 3;"><label>Criteria</label><textarea name="criteria" rows="2"></textarea></div><div><button type="submit" class="btn btn-primary">Add</button></div></form></div>
+            <div class="card section-gap" style="border:2px solid var(--blue);"><div class="card-header"><h2>✏️ Update Position</h2></div><form method="POST" action="{{ route('applicants.positions.update') }}" class="form-grid">@csrf @method('PUT')<div class="field"><label>Position <span style="color:red;">*</span></label><select name="position_id" id="update_position_select" required onchange="autoFillPosition(this)">@foreach($positions as $pos)<option value="{{ $pos->id }}" data-org="{{ $pos->organization_id }}" data-name="{{ $pos->name }}" data-grade="{{ $pos->grade }}" data-salary="{{ $pos->salary }}" data-req="{{ $pos->requirement_type }}" data-crit="{{ $pos->criteria }}">{{ $pos->organization->name??'' }} — {{ $pos->name }}</option>@endforeach</select></div><div class="field"><label>Organization</label><select name="organization_id" id="update_org_id" required>@foreach($organizations as $org)<option value="{{ $org->id }}">{{ $org->name }}</option>@endforeach</select></div><div class="field"><label>Name</label><input type="text" name="name" id="update_name" required></div><div class="field"><label>Grade</label><input type="text" name="grade" id="update_grade"></div><div class="field"><label>Salary</label><input type="text" name="salary" id="update_salary"></div><div class="field"><label>Type</label><input type="text" name="requirement_type" id="update_req"></div><div class="field" style="grid-column:span 3;"><label>Criteria</label><textarea name="criteria" id="update_crit" rows="2"></textarea></div><div class="flex gap-2"><button type="submit" class="btn btn-blue">Update</button><button type="reset" class="btn btn-light">Clear</button></div></form></div>
+            <div class="card section-gap"><div class="card-header"><h2>📋 Positions ({{ $positions->count() }})</h2></div><div class="table-wrap"><table><thead><tr><th>Organization</th><th>Position</th><th>Grade</th><th>Salary</th><th>Type</th><th>Action</th></tr></thead><tbody>@forelse($positions as $pos)<tr><td>{{ $pos->organization->name??'' }}</td><td><strong>{{ $pos->name }}</strong></td><td>{{ $pos->grade?:'-' }}</td><td>{{ $pos->salary?:'-' }}</td><td>{{ $pos->requirement_type?:'-' }}</td><td><form method="post" style="display:inline;" action="{{ route('applicants.positions.destroy',$pos->id) }}">@csrf @method('DELETE')<button class="btn btn-danger btn-xs">🗑️</button></form></td></tr>@empty<tr><td colspan="6"><div class="empty-state">No positions</div></td></tr>@endforelse</tbody></table></div></div>
         @else
-            <div class="card"><h2>Recruitment Settings</h2><div class="small">Only HR editors and administrators can manage organizations, positions and criteria.</div></div>
+            <div class="card"><h2>🔒 Settings</h2><p class="text-sm text-muted">Only editors and admins can manage.</p></div>
         @endif
     </div>
 
-    <!-- ============================================ -->
-    <!-- SECTION: CRITERIA -->
-    <!-- ============================================ -->
+    <!-- SECTION 7: CRITERIA -->
     <div id="section-criteria" class="section-card">
-        <div class="card">
-            <div class="section-title">
-                <h2>📊 Selection Criteria Settings</h2>
-                <span class="subtitle">Set criteria, weights and pass marks for each organization</span>
-            </div>
-
-            @if($canEdit)
-                <form method="post" class="applicant-form" action="{{ route('applicants.criteria.store') }}">
-                    @csrf
-                    <div class="field"><label>Organization <span style="color:red;">*</span></label><select name="organization_id" required>@foreach($activeOrganizations as $org)<option value="{{ $org->id }}">{{ $org->name }}</option>@endforeach</select></div>
-                    <div class="field"><label>Position Scope</label><select name="criterion_position_id"><option value="">All Positions</option>@foreach($positions as $pos)<option value="{{ $pos->id }}">{{ $pos->organization->name ?? '' }} — {{ $pos->name }}</option>@endforeach</select></div>
-                    <div class="field"><label>Criterion Name <span style="color:red;">*</span></label><input type="text" name="criterion_name" placeholder="Document Screening / Interview" required></div>
-                    <div class="field"><label>Weight % <span style="color:red;">*</span></label><input type="number" name="weight" min="0.01" step="0.01" value="25" required></div>
-                    <div class="field"><label>Maximum Score <span style="color:red;">*</span></label><input type="number" name="max_score" min="0.01" step="0.01" value="100" required></div>
-                    <div class="field"><label>Pass Mark</label><input type="number" name="pass_mark" min="0" step="0.01" value="50"></div>
-                    <div class="field"><label>Display Order</label><input type="number" name="display_order" min="1" step="1" value="1"></div>
-                    <div><button type="submit">Add Criterion</button></div>
-                </form>
-
-                <div class="table-wrap" style="margin-top:16px;">
-                    <table>
-                        <thead><tr><th>Organization</th><th>Position Scope</th><th>Criterion</th><th class="num">Weight %</th><th class="num">Maximum</th><th class="num">Pass Mark</th><th>Action</th></tr></thead>
-                        <tbody>
-                            @php $allCriteria = \App\Models\SelectionCriterion::with(['organization', 'position'])->get(); @endphp
-                            @forelse($allCriteria as $criterion)
-                                <tr><td>{{ $criterion->organization->name ?? '' }}</td><td>{{ $criterion->position->name ?? 'All Positions' }}</td><td>{{ $criterion->criterion_name }}</td><td class="num">{{ number_format($criterion->weight, 1) }}</td><td class="num">{{ number_format($criterion->max_score, 1) }}</td><td class="num">{{ number_format($criterion->pass_mark, 1) }}</td>
-                                    <td><form method="post" style="display:inline;" action="{{ route('applicants.criteria.destroy', $criterion->id) }}">@csrf @method('DELETE')<button class="btn danger btn-sm" onclick="return confirm('Delete this criterion?')">Delete</button></form></td></tr>
-                            @empty
-                                <tr><td colspan="7"><div class="empty-state"><p>No selection criteria configured</p></div></td></tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-            @else
-                <div class="small">Only HR editors and administrators can manage criteria.</div>
-            @endif
-        </div>
+        <div class="card"><div class="card-header"><h2>📊 Selection Criteria</h2></div>@if($canEdit)<form method="post" class="form-grid" action="{{ route('applicants.criteria.store') }}">@csrf<div class="field"><label>Organization <span style="color:red;">*</span></label><select name="organization_id" required>@foreach($activeOrganizations as $org)<option value="{{ $org->id }}">{{ $org->name }}</option>@endforeach</select></div><div class="field"><label>Position Scope</label><select name="criterion_position_id"><option value="">All</option>@foreach($positions as $pos)<option value="{{ $pos->id }}">{{ $pos->organization->name??'' }} — {{ $pos->name }}</option>@endforeach</select></div><div class="field"><label>Name <span style="color:red;">*</span></label><input type="text" name="criterion_name" required></div><div class="field"><label>Weight %</label><input type="number" name="weight" min="0.01" step="0.01" value="25" required></div><div class="field"><label>Max Score</label><input type="number" name="max_score" min="0.01" step="0.01" value="100" required></div><div class="field"><label>Pass Mark</label><input type="number" name="pass_mark" min="0" step="0.01" value="50"></div><div class="field"><label>Order</label><input type="number" name="display_order" min="1" value="1"></div><div><button type="submit" class="btn btn-primary">Add</button></div></form><div class="table-wrap mt-3"><table><thead><tr><th>Org</th><th>Scope</th><th>Criterion</th><th class="num">Weight</th><th class="num">Max</th><th class="num">Pass</th><th>Action</th></tr></thead><tbody>@php $allCrit=\App\Models\SelectionCriterion::with(['organization','position'])->get(); @endphp@forelse($allCrit as $c)<tr><td>{{ $c->organization->name??'' }}</td><td>{{ $c->position->name??'All' }}</td><td>{{ $c->criterion_name }}</td><td class="num">{{ number_format($c->weight,1) }}</td><td class="num">{{ number_format($c->max_score,1) }}</td><td class="num">{{ number_format($c->pass_mark,1) }}</td><td><form method="post" style="display:inline;" action="{{ route('applicants.criteria.destroy',$c->id) }}">@csrf @method('DELETE')<button class="btn btn-danger btn-xs">🗑️</button></form></td></tr>@empty<tr><td colspan="7"><div class="empty-state">No criteria</div></td></tr>@endforelse</tbody></table></div>@else<p class="text-sm text-muted">Only editors/admins can manage.</p>@endif</div>
     </div>
 
-    <!-- ============================================ -->
-    <!-- SECTION: REPORTS -->
-    <!-- ============================================ -->
+    <!-- SECTION 8: REPORTS -->
     <div id="section-reports" class="section-card">
-        <div class="card" id="report-parameters">
-            <div class="section-title">
-                <h2>📊 Applicant Report Parameters</h2>
-                <span class="subtitle">Select filters to generate professional Excel reports</span>
-            </div>
-
-            <form method="get" action="{{ route('applicants.index') }}" class="report-form">
-                <input type="hidden" name="run" value="1">
-                <div class="form-grid-3">
-                    <div class="field"><label>Organization</label><select name="organization"><option value="0">All Organizations</option>@foreach($organizations as $org)<option value="{{ $org->id }}" @if(request('organization') == $org->id) selected @endif>{{ $org->name }}</option>@endforeach</select></div>
-                    <div class="field"><label>Application Position</label><select name="position"><option value="0">All Positions</option>@foreach($positions as $pos)<option value="{{ $pos->id }}" @if(request('position') == $pos->id) selected @endif>{{ $pos->organization->name ?? '' }} — {{ $pos->name }}</option>@endforeach</select></div>
-                    <div class="field"><label>From Registration Date</label><input type="date" name="date_from" value="{{ request('date_from', '') }}"></div>
-                    <div class="field"><label>To Registration Date</label><input type="date" name="date_to" value="{{ request('date_to', '') }}"></div>
-                    <div class="field"><label>Academic Background</label><select name="academic"><option value="All" @if(request('academic', 'All') == 'All') selected @endif>All Academic Levels</option>@foreach($academicLevels as $level)<option value="{{ $level }}" @if(request('academic') == $level) selected @endif>{{ $level }}</option>@endforeach</select></div>
-                    <div class="field"><label>Selection Decision</label><select name="decision"><option value="All" @if(request('decision', 'All') == 'All') selected @endif>All Selection Decisions</option>@foreach($decisions as $decision)<option value="{{ $decision }}" @if(request('decision') == $decision) selected @endif>{{ $decision }}</option>@endforeach</select></div>
-                </div>
-                <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;">
-                    <button type="submit" class="btn" style="background:#1b7f79;">🔄 Update Report</button>
-                    <a href="{{ route('applicants.index') }}" class="btn light">Clear All</a>
-                </div>
-            </form>
-
-            @if(request('run') == 1)
-                <div style="margin-top:16px; padding:16px; background:#f8fbfd; border-radius:8px; border:1px solid #dce5ee;">
-                    <h3 style="margin:0 0 12px 0; font-size:14px;">📥 Download Excel Reports</h3>
-                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                        <a href="{{ route('applicants.export', request()->all()) }}" class="btn" style="background:#1b7f79;">📋 Applicant Register Excel</a>
-                        <a href="{{ route('applicants.export-selection', request()->all()) }}" class="btn" style="background:#397a9f;">🎯 Selection Report Excel</a>
-                        <a href="{{ route('applicants.export-profile', request()->all()) }}" class="btn" style="background:#d38b2a;">📄 Detailed Profile Excel</a>
-                    </div>
-                    <div class="small" style="margin-top:8px; color:var(--muted);">{{ $applicants->count() }} applicants found matching the selected criteria.</div>
-                </div>
-            @endif
-        </div>
+        <div class="card" id="report-parameters"><div class="card-header"><h2>📊 Reports</h2></div><form method="get" action="{{ route('applicants.index') }}"><input type="hidden" name="run" value="1"><div class="form-grid-3"><div class="field"><label>Organization</label><select name="organization"><option value="0">All</option>@foreach($organizations as $org)<option value="{{ $org->id }}" @if(request('organization')==$org->id) selected @endif>{{ $org->name }}</option>@endforeach</select></div><div class="field"><label>Position</label><select name="position"><option value="0">All</option>@foreach($positions as $pos)<option value="{{ $pos->id }}" @if(request('position')==$pos->id) selected @endif>{{ $pos->organization->name??'' }} — {{ $pos->name }}</option>@endforeach</select></div><div class="field"><label>From</label><input type="date" name="date_from" value="{{ request('date_from') }}"></div><div class="field"><label>To</label><input type="date" name="date_to" value="{{ request('date_to') }}"></div><div class="field"><label>Academic</label><select name="academic"><option value="All">All</option>@foreach($academicLevels as $lvl)<option value="{{ $lvl }}" @if(request('academic')==$lvl) selected @endif>{{ $lvl }}</option>@endforeach</select></div><div class="field"><label>Decision</label><select name="decision"><option value="All">All</option>@foreach($decisions as $d)<option value="{{ $d }}" @if(request('decision')==$d) selected @endif>{{ $d }}</option>@endforeach</select></div></div><div class="flex gap-2 mt-3"><button type="submit" class="btn btn-primary">🔄 Update</button><a href="{{ route('applicants.index') }}" class="btn btn-light">Clear</a></div></form>@if(request('run')==1)<div class="highlight-box mt-3"><h4>📥 Download</h4><div class="flex gap-2 flex-wrap mt-2"><a href="{{ route('applicants.export',request()->all()) }}" class="btn btn-teal">📋 Register Excel</a><a href="{{ route('applicants.export-selection',request()->all()) }}" class="btn btn-blue">🎯 Selection Excel</a><a href="{{ route('applicants.export-profile',request()->all()) }}" class="btn btn-orange">📄 Profile Excel</a></div><p class="text-xs text-muted mt-2">{{ $applicants->count() }} applicants match.</p></div>@endif</div>
     </div>
 
-    <!-- ============================================ -->
     <!-- JAVASCRIPT -->
-    <!-- ============================================ -->
     <script>
-        function switchSection(sectionId) {
-            // Hide all sections
-            document.querySelectorAll('.section-card').forEach(el => {
-                el.classList.remove('active');
-            });
-            
-            // Show selected section
-            const target = document.getElementById('section-' + sectionId);
-            if (target) {
-                target.classList.add('active');
-            }
-            
-            // Update nav links
-            document.querySelectorAll('.applicant-nav a').forEach(el => {
-                el.classList.remove('active');
-                if (el.getAttribute('href') === '#section-' + sectionId) {
-                    el.classList.add('active');
-                }
-            });
-            
-            // Update URL hash
-            history.pushState(null, null, '#section-' + sectionId);
-            
-            // Scroll to top of section
-            const nav = document.getElementById('mainNav');
-            if (nav) {
-                nav.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
+        function toggleDropdown(id, show) {
+            const dd = document.getElementById(id + '_dropdown');
+            if (dd) { if (show) { document.querySelectorAll('.searchable-dropdown').forEach(d => d.classList.remove('visible')); dd.classList.add('visible'); filterDropdown(id); } else { dd.classList.remove('visible'); } }
         }
-
-        // Check for hash on load
-        document.addEventListener('DOMContentLoaded', function() {
-            const hash = window.location.hash;
-            if (hash) {
-                const sectionId = hash.replace('#section-', '');
-                if (sectionId) {
-                    switchSection(sectionId);
-                }
-            }
-            
-            // Auto-fill update position form
-            const positionSelect = document.getElementById('update_position_select');
-            if (positionSelect) {
-                positionSelect.addEventListener('change', function() {
-                    const selectedOption = this.options[this.selectedIndex];
-                    if (selectedOption.value) {
-                        document.getElementById('update_org_id').value = selectedOption.dataset.org || '';
-                        document.getElementById('update_name').value = selectedOption.dataset.name || '';
-                        document.getElementById('update_grade').value = selectedOption.dataset.grade || '';
-                        document.getElementById('update_salary').value = selectedOption.dataset.salary || '';
-                        document.getElementById('update_requirement').value = selectedOption.dataset.requirement || '';
-                        document.getElementById('update_criteria').value = selectedOption.dataset.criteria || '';
-                    }
-                });
-            }
-        });
+        function filterDropdown(id) {
+            const input = document.getElementById(id + '_search'), term = input.value.toLowerCase().trim(), dd = document.getElementById(id + '_dropdown'), opts = dd.querySelectorAll('.searchable-option:not(.clear-option)');
+            opts.forEach(opt => { const text = (opt.getAttribute('data-text') + ' ' + opt.getAttribute('data-subtext')).toLowerCase(); opt.style.display = (term === '' || text.includes(term)) ? 'block' : 'none'; if (term !== '' && text.includes(term)) { const nameEl = opt.querySelector('strong'); if (nameEl) nameEl.innerHTML = highlight(opt.getAttribute('data-text'), term); } else { const nameEl = opt.querySelector('strong'); if (nameEl) nameEl.textContent = opt.getAttribute('data-text'); } });
+        }
+        function highlight(text, term) { const regex = new RegExp('(' + term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi'); return text.replace(regex, '<span class="searchable-highlight">$1</span>'); }
+        function selectFromDropdown(id, value, text, el) { document.getElementById(id).value = value; document.getElementById(id + '_search').value = text; const dd = document.getElementById(id + '_dropdown'); dd.querySelectorAll('.searchable-option').forEach(o => o.classList.remove('selected')); if (el) el.classList.add('selected'); dd.classList.remove('visible'); }
+        function filterReviewList() { const input = document.getElementById('review_applicant_search'), term = input.value.toLowerCase().trim(), items = document.querySelectorAll('.review-item'), countEl = document.getElementById('review_count'); let count = 0; items.forEach(item => { if (term === '' || item.getAttribute('data-search').includes(term)) { item.style.display = 'flex'; count++; } else { item.style.display = 'none'; } }); if (countEl) countEl.textContent = count; }
+        function selectReviewItem(id, name, el) { document.getElementById('review_applicant').value = id; document.getElementById('review_applicant_search').value = name; document.querySelectorAll('.review-item').forEach(item => item.classList.remove('selected')); if (el) { el.classList.add('selected'); el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } }
+        function switchSection(sectionId) { document.querySelectorAll('.section-card').forEach(el => el.classList.remove('active')); const target = document.getElementById('section-' + sectionId); if (target) target.classList.add('active'); document.querySelectorAll('.applicant-nav a').forEach(el => { el.classList.remove('active'); if (el.getAttribute('href') === '#section-' + sectionId) el.classList.add('active'); }); history.pushState(null, null, '#section-' + sectionId); document.getElementById('mainNav')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+        function autoFillPosition(sel) { const opt = sel.options[sel.selectedIndex]; if (opt.value) { document.getElementById('update_org_id').value = opt.dataset.org || ''; document.getElementById('update_name').value = opt.dataset.name || ''; document.getElementById('update_grade').value = opt.dataset.grade || ''; document.getElementById('update_salary').value = opt.dataset.salary || ''; document.getElementById('update_req').value = opt.dataset.req || ''; document.getElementById('update_crit').value = opt.dataset.crit || ''; } }
+        
+        // Close dropdowns on outside click
+        document.addEventListener('click', function(e) { document.querySelectorAll('.searchable-wrapper').forEach(w => { if (!w.contains(e.target)) { const dd = w.querySelector('.searchable-dropdown'); if (dd) dd.classList.remove('visible'); } }); });
+        
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) { if (!document.activeElement?.classList.contains('searchable-input')) return; const id = document.activeElement.id.replace('_search', ''), dd = document.getElementById(id + '_dropdown'); if (!dd || !dd.classList.contains('visible')) return; const visible = Array.from(dd.querySelectorAll('.searchable-option')).filter(o => o.style.display !== 'none'), currentIdx = visible.findIndex(o => o.classList.contains('selected')); if (e.key === 'Escape') { dd.classList.remove('visible'); document.activeElement.blur(); } else if (e.key === 'Enter') { e.preventDefault(); if (currentIdx >= 0) { const sel = visible[currentIdx]; selectFromDropdown(id, sel.getAttribute('data-value'), sel.getAttribute('data-text'), sel); } } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); dd.classList.add('visible'); const next = e.key === 'ArrowDown' ? (currentIdx < visible.length - 1 ? currentIdx + 1 : 0) : (currentIdx > 0 ? currentIdx - 1 : visible.length - 1); visible.forEach(o => o.classList.remove('selected')); if (visible[next]) { visible[next].classList.add('selected'); visible[next].scrollIntoView({block:'nearest'}); } } });
+        
+        // Experience Calculation
+        function calculateExperience() { const applicantId = document.getElementById('experience_applicant').value; if (!applicantId) { alert('Please select an applicant.'); return; } fetch('/applicants/experience/' + applicantId).then(r => r.json()).then(data => { if (data.success) { document.getElementById('experience_result').style.display = 'block'; document.getElementById('total_experience_display').textContent = data.total_experience.formatted; document.getElementById('specific_experience_display').textContent = data.specific_experience.formatted; let html = '<table><thead><tr><th>Company</th><th>Job Title</th><th>Duration</th><th>Start</th><th>End</th><th>Relevant</th></tr></thead><tbody>'; data.work_experiences.forEach(function(exp) { html += '<tr><td><strong>' + exp.company + '</strong></td><td>' + exp.job_title + '</td><td>' + exp.duration + '</td><td>' + exp.start_date + '</td><td>' + exp.end_date + '</td><td>' + (exp.specific ? '✅ Yes' : '❌ No') + '</td></tr>'; }); html += '</tbody></table>'; document.getElementById('experience_details').innerHTML = html; } }).catch(e => { alert('Failed to calculate experience.'); }); }
+        
+        // Ranking
+        function getRanking() { const positionId = document.getElementById('ranking_position').value; if (!positionId) { alert('Please select a position.'); return; } fetch('/applicants/ranking/' + positionId).then(r => r.json()).then(data => { if (data.success) { document.getElementById('ranking_result').style.display = 'block'; const tbody = document.getElementById('ranking_body'); tbody.innerHTML = ''; data.ranking.forEach(function(c) { let rankDisplay = c.rank; if (c.rank === 1) rankDisplay = '🥇 1'; else if (c.rank === 2) rankDisplay = '🥈 2'; else if (c.rank === 3) rankDisplay = '🥉 3'; const row = document.createElement('tr'); row.innerHTML = '<td><strong>' + rankDisplay + '</strong></td><td><strong>' + c.name + '</strong></td><td>' + c.position + '</td><td class="num"><strong>' + c.final_score.toFixed(2) + '</strong></td><td><span class="badge badge-status ' + c.decision.toLowerCase() + '">' + c.decision + '</span></td>'; tbody.appendChild(row); }); } }).catch(e => { alert('Failed to get ranking.'); }); }
+        function updateRanks() { const positionId = document.getElementById('ranking_position').value; if (!positionId) { alert('Please select a position.'); return; } if (!confirm('Update ranks for all candidates?')) return; fetch('/applicants/ranks/update/' + positionId, { method: 'POST', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content } }).then(r => r.json()).then(data => { if (data.success) { alert(data.message); getRanking(); } }).catch(e => { alert('Failed to update ranks.'); }); }
+        
+        // Init
+        document.addEventListener('DOMContentLoaded', function() { const hash = window.location.hash; if (hash) { const sectionId = hash.replace('#section-', ''); if (sectionId) switchSection(sectionId); } @if($editApplicant && $editApplicant->position) document.getElementById('position').value = "{{ $editApplicant->position_id }}"; document.getElementById('position_search').value = "{{ $editApplicant->position->organization->name ?? '' }} — {{ $editApplicant->position->name }}"; @endif });
     </script>
 @endsection

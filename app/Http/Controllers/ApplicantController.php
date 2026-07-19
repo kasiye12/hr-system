@@ -126,7 +126,10 @@ class ApplicantController extends Controller
     // Edit mode - load applicant for editing
     $editApplicant = null;
     if ($request->filled('edit_registration')) {
-        $editApplicant = Applicant::with('position')->find($request->edit_registration);
+        $editApplicant = Applicant::with(['position.organization'])->find($request->edit_registration);
+        if (!$editApplicant) {
+            return redirect()->route('applicants.index')->with('error', 'Applicant not found.');
+        }
     }
 
     // Statistics
@@ -166,6 +169,82 @@ class ApplicantController extends Controller
         'decisions',
         'canEdit'
     ));
+}
+/**
+ * Calculate experience for a specific applicant (AJAX)
+ */
+public function calculateExperience($id)
+{
+    $applicant = Applicant::with('workExperiences')->findOrFail($id);
+    
+    $totalExperience = $applicant->calculateTotalExperience();
+    $specificExperience = $applicant->calculateSpecificExperience();
+    
+    return response()->json([
+        'success' => true,
+        'total_experience' => $totalExperience,
+        'specific_experience' => $specificExperience,
+        'work_experiences' => $applicant->workExperiences->map(function($exp) {
+            return [
+                'company' => $exp->company,
+                'job_title' => $exp->job_title,
+                'duration' => $exp->duration,
+                'start_date' => $exp->formatted_start_date,
+                'end_date' => $exp->formatted_end_date,
+                'specific' => $exp->specific_to_position,
+            ];
+        }),
+    ]);
+}
+
+/**
+ * Calculate and update ranks for a position
+ */
+public function updateRanks($positionId)
+{
+    $updated = ApplicantSelection::updateRanks($positionId);
+    
+    return response()->json([
+        'success' => true,
+        'message' => 'Ranks updated successfully',
+        'rankings' => $updated,
+    ]);
+}
+
+/**
+ * Get candidate ranking for a position
+ */
+public function getRanking($positionId)
+{
+    $applicants = Applicant::where('position_id', $positionId)
+        ->with(['selection', 'position'])
+        ->get()
+        ->filter(function($a) {
+            return $a->selection && $a->selection->final_score > 0;
+        })
+        ->sortByDesc(function($a) {
+            return $a->selection->final_score;
+        })
+        ->values();
+
+    $rankingData = [];
+    foreach ($applicants as $index => $applicant) {
+        $rankingData[] = [
+            'rank' => $index + 1,
+            'applicant_id' => $applicant->id,
+            'name' => $applicant->full_name,
+            'final_score' => $applicant->selection->final_score,
+            'decision' => $applicant->selection->decision,
+            'position' => $applicant->position->name ?? 'N/A',
+        ];
+    }
+
+    return response()->json([
+        'success' => true,
+        'position_id' => $positionId,
+        'total_candidates' => count($rankingData),
+        'ranking' => $rankingData,
+    ]);
 }
     /**
      * Store a newly created applicant
@@ -352,107 +431,132 @@ class ApplicantController extends Controller
     // WORK EXPERIENCE METHODS
     // ============================================
 
-    /**
-     * Store a new work experience record
-     */
-    public function storeWorkExperience(Request $request)
-    {
-        $user = Auth::user();
+   /**
+ * Store a new work experience record
+ */
+public function storeWorkExperience(Request $request)
+{
+    $user = Auth::user();
 
-        if (!$user->canEdit()) {
-            return redirect()->route('applicants.index')
-                ->with('error', 'You do not have permission to add work experience.');
-        }
+    if (!$user->canEdit()) {
+        return redirect()->route('applicants.index')
+            ->with('error', 'You do not have permission to add work experience.');
+    }
 
-        $validator = Validator::make($request->all(), [
-            'applicant_id' => 'required|exists:applicants,id',
-            'company' => 'required|string|max:200',
-            'job_title' => 'required|string|max:200',
-            'start_date' => 'nullable|date',
-            'end_date' => 'nullable|date|after_or_equal:start_date',
-            'specific_to_position' => 'boolean',
-            'specific_position_title' => 'nullable|string|max:200',
-            'notes' => 'nullable|string',
+    $validator = Validator::make($request->all(), [
+        'applicant_id' => 'required|exists:applicants,id',
+        'company' => 'required|string|max:200',
+        'job_title' => 'required|string|max:200',
+        'start_date' => 'nullable|date',
+        'end_date' => 'nullable|date|after_or_equal:start_date',
+        'specific_to_position' => 'boolean',
+        'specific_position_title' => 'nullable|string|max:200',
+        'notes' => 'nullable|string',
+    ]);
+
+    if ($validator->fails()) {
+        return redirect()->route('applicants.index')
+            ->withErrors($validator)
+            ->withInput();
+    }
+
+    DB::beginTransaction();
+
+    try {
+        $experience = ApplicantWorkExperience::create([
+            'applicant_id' => $request->applicant_id,
+            'company' => $request->company,
+            'job_title' => $request->job_title,
+            'start_date' => $request->start_date,
+            'end_date' => $request->end_date,
+            'specific_to_position' => $request->boolean('specific_to_position'),
+            'specific_position_title' => $request->specific_position_title ?? '',
+            'notes' => $request->notes ?? '',
+            'created_by' => $user->username,
         ]);
 
-        if ($validator->fails()) {
-            return redirect()->route('applicants.index')
-                ->withErrors($validator)
-                ->withInput();
-        }
+        // ============================================
+        // AUTO-CALCULATE TOTAL EXPERIENCE
+        // ============================================
+        $applicant = Applicant::find($request->applicant_id);
+        
+        // Calculate total experience from all work records
+        $totalExp = $applicant->calculateTotalExperience();
+        
+        // Calculate specific experience (relevant to position)
+        $specificExp = $applicant->calculateSpecificExperience();
+        
+        // Update applicant with calculated experience
+        $applicant->update([
+            'experience_years' => $totalExp['years'],
+            'experience_months' => $totalExp['months'],
+        ]);
 
-        DB::beginTransaction();
+        AuditLog::create([
+            'username' => $user->username,
+            'action' => 'add_work_experience',
+            'details' => "{$experience->company} | {$experience->job_title} (Applicant: {$experience->applicant->full_name}) - Total Exp: {$totalExp['formatted']}, Specific Exp: {$specificExp['formatted']}",
+        ]);
 
-        try {
-            $experience = ApplicantWorkExperience::create([
-                'applicant_id' => $request->applicant_id,
-                'company' => $request->company,
-                'job_title' => $request->job_title,
-                'start_date' => $request->start_date,
-                'end_date' => $request->end_date,
-                'specific_to_position' => $request->boolean('specific_to_position'),
-                'specific_position_title' => $request->specific_position_title ?? '',
-                'notes' => $request->notes ?? '',
-                'created_by' => $user->username,
-            ]);
+        DB::commit();
 
-            AuditLog::create([
-                'username' => $user->username,
-                'action' => 'add_work_experience',
-                'details' => "{$experience->company} | {$experience->job_title} (Applicant: {$experience->applicant->full_name})",
-            ]);
+        return redirect()->route('applicants.index')
+            ->with('success', "Work experience added successfully for {$experience->applicant->full_name}. Total Experience: {$totalExp['formatted']}");
 
-            DB::commit();
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return redirect()->route('applicants.index')
+            ->with('error', 'Failed to add work experience: ' . $e->getMessage())
+            ->withInput();
+    }
+}
+   /**
+ * Delete a work experience record
+ */
+public function deleteWorkExperience($id)
+{
+    $user = Auth::user();
 
-            return redirect()->route('applicants.index')
-                ->with('success', "Work experience added successfully for {$experience->applicant->full_name}.");
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return redirect()->route('applicants.index')
-                ->with('error', 'Failed to add work experience: ' . $e->getMessage())
-                ->withInput();
-        }
+    if (!$user->canEdit()) {
+        return redirect()->route('applicants.index')
+            ->with('error', 'You do not have permission to delete work experience.');
     }
 
-    /**
-     * Delete a work experience record
-     */
-    public function deleteWorkExperience($id)
-    {
-        $user = Auth::user();
+    $experience = ApplicantWorkExperience::findOrFail($id);
+    $applicantId = $experience->applicant_id;
+    $applicantName = $experience->applicant->full_name;
+    $details = "{$experience->company} | {$experience->job_title}";
 
-        if (!$user->canEdit()) {
-            return redirect()->route('applicants.index')
-                ->with('error', 'You do not have permission to delete work experience.');
-        }
+    DB::beginTransaction();
 
-        $experience = ApplicantWorkExperience::findOrFail($id);
-        $applicantName = $experience->applicant->full_name;
-        $details = "{$experience->company} | {$experience->job_title}";
+    try {
+        $experience->delete();
 
-        DB::beginTransaction();
+        // Recalculate experience after deletion
+        $applicant = Applicant::find($applicantId);
+        $totalExp = $applicant->calculateTotalExperience();
+        $applicant->update([
+            'experience_years' => $totalExp['years'],
+            'experience_months' => $totalExp['months'],
+        ]);
 
-        try {
-            $experience->delete();
+        AuditLog::create([
+            'username' => $user->username,
+            'action' => 'delete_work_experience',
+            'details' => "{$details} (Applicant: {$applicantName})",
+        ]);
 
-            AuditLog::create([
-                'username' => $user->username,
-                'action' => 'delete_work_experience',
-                'details' => "{$details} (Applicant: {$applicantName})",
-            ]);
+        DB::commit();
 
-            DB::commit();
+        return redirect()->route('applicants.index')
+            ->with('success', "Work experience deleted successfully. Updated total experience: {$totalExp['formatted']}");
 
-            return redirect()->route('applicants.index')
-                ->with('success', "Work experience deleted successfully.");
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return redirect()->route('applicants.index')
-                ->with('error', 'Failed to delete work experience: ' . $e->getMessage());
-        }
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return redirect()->route('applicants.index')
+            ->with('error', 'Failed to delete work experience: ' . $e->getMessage());
     }
+}
 
     /**
      * Get work experience data for editing (AJAX)
