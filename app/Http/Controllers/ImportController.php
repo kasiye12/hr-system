@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 
 class ImportController extends Controller
 {
@@ -24,82 +25,90 @@ class ImportController extends Controller
             ->orderBy('row_order')
             ->get();
 
-        return view('import.index', compact('projects', 'categories'));
+        $recentImports = AuditLog::whereIn('action', ['import_headcount', 'import_structure'])
+            ->orderBy('logged_at', 'desc')
+            ->limit(10)
+            ->get();
+
+        return view('import.index', compact('projects', 'categories', 'recentImports'));
     }
 
     /**
- * Handle the import
- */
-public function import(Request $request)
-{
-    $user = Auth::user();
+     * Handle the import
+     */
+    public function import(Request $request)
+    {
+        $user = Auth::user();
 
-    if (!$user->canEdit()) {
-        return redirect()->route('import.index')
-            ->with('error', 'You do not have permission to import data.');
-    }
+        if (!$user->canEdit()) {
+            return redirect()->route('import.index')
+                ->with('error', 'You do not have permission to import data.');
+        }
 
-    // Validate the request
-    $request->validate([
-        'file' => 'required|file|mimes:xlsx,xls,csv|max:5120',
-        'import_type' => 'required|in:headcount,structure',
-    ]);
-
-    $importType = $request->input('import_type');
-
-    if ($importType === 'headcount') {
+        // Validate the request
         $request->validate([
-            'project_id' => 'required|exists:projects,id',
-            'date_column' => 'required|string',
+            'file' => 'required|file|mimes:xlsx,xls,csv|max:5120',
+            'import_type' => 'required|in:headcount,structure',
         ]);
-    }
 
-    $file = $request->file('file');
+        $importType = $request->input('import_type');
 
-    try {
-        // Load the spreadsheet
-        $spreadsheet = IOFactory::load($file->getPathname());
-        $worksheet = $spreadsheet->getActiveSheet();
-        $rows = $worksheet->toArray();
-
-        // Check if file has data
-        if (empty($rows) || count($rows) < 2) {
-            return redirect()->route('import.index')
-                ->with('error', 'The file is empty or does not contain enough rows.');
-        }
-
-        // Get headers and data rows
-        $headers = array_map('trim', $rows[0]);
-        $dataRows = array_slice($rows, 1);
-
-        // Remove empty rows
-        $dataRows = array_filter($dataRows, function($row) {
-            return !empty(array_filter($row, function($cell) {
-                return !empty(trim($cell));
-            }));
-        });
-
-        if (empty($dataRows)) {
-            return redirect()->route('import.index')
-                ->with('error', 'No data rows found in the file.');
-        }
-
-        // Process based on import type
         if ($importType === 'headcount') {
-            $projectId = (int) $request->input('project_id');
-            $dateColumn = trim($request->input('date_column'));
-            return $this->importHeadcount($dataRows, $headers, $projectId, $dateColumn, $user);
-        } else {
-            return $this->importStructure($dataRows, $headers, $user);
+            $request->validate([
+                'project_id' => 'required|exists:projects,id',
+                'date_column' => 'required|string',
+            ]);
         }
 
-    } catch (\Exception $e) {
-        return redirect()->route('import.index')
-            ->with('error', 'Failed to import file: ' . $e->getMessage() . ' at line ' . $e->getLine());
-    }
-}
+        $file = $request->file('file');
 
-    private function importHeadcount($dataRows, $headers, $projectId, $dateColumn, $user)
+        try {
+            // Load the spreadsheet
+            $spreadsheet = IOFactory::load($file->getPathname());
+            $worksheet = $spreadsheet->getActiveSheet();
+            $rows = $worksheet->toArray();
+
+            // Check if file has data
+            if (empty($rows) || count($rows) < 2) {
+                return redirect()->route('import.index')
+                    ->with('error', 'The file is empty or does not contain enough rows.');
+            }
+
+            // Get headers and data rows
+            $headers = array_map('trim', $rows[0]);
+            $dataRows = array_slice($rows, 1);
+
+            // Remove empty rows
+            $dataRows = array_filter($dataRows, function($row) {
+                return !empty(array_filter($row, function($cell) {
+                    return !empty(trim($cell));
+                }));
+            });
+
+            if (empty($dataRows)) {
+                return redirect()->route('import.index')
+                    ->with('error', 'No data rows found in the file.');
+            }
+
+            // Process based on import type
+            if ($importType === 'headcount') {
+                $projectId = (int) $request->input('project_id');
+                $dateColumn = trim($request->input('date_column'));
+                return $this->importHeadcount($dataRows, $headers, $projectId, $dateColumn, $user);
+            } else {
+                return $this->importStructure($dataRows, $headers, $user);
+            }
+
+        } catch (\Exception $e) {
+            return redirect()->route('import.index')
+                ->with('error', 'Failed to import file: ' . $e->getMessage());
+        }
+    }
+
+    /**
+ * Import headcount data
+ */
+private function importHeadcount($dataRows, $headers, $projectId, $dateColumn, $user)
 {
     // Find date column index
     $dateIndex = array_search($dateColumn, $headers);
@@ -116,12 +125,16 @@ public function import(Request $request)
             ->with('error', 'No job titles found in the system. Please add job titles first.');
     }
 
-    // Create mapping for category columns - EXACT MATCH on code
+    // Create mapping for category columns - Match by CODE and NAME
     $categoryMap = [];
+    $categoryNameMap = [];
     foreach ($categories as $category) {
+        // Map by code
         $categoryMap[strtoupper(trim($category->code))] = $category->id;
-        // Also map by name for flexibility
-        $categoryMap[strtoupper(trim($category->name))] = $category->id;
+        // Map by name (job title)
+        $categoryNameMap[strtoupper(trim($category->name))] = $category->id;
+        // Map by name without special characters
+        $categoryNameMap[strtoupper(str_replace([' ', '-', '_', '.'], '', trim($category->name)))] = $category->id;
     }
 
     // Find which columns match categories
@@ -133,24 +146,73 @@ public function import(Request $request)
         if ($index === $dateIndex) continue;
         $headerClean = strtoupper(trim($header));
         
-        // Try to match - also handle headers with extra text like "CODE (Job Title)"
-        $headerParts = explode('(', $headerClean);
-        $headerClean = trim($headerParts[0]);
-        
+        // Try exact match by code
         if (isset($categoryMap[$headerClean])) {
             $categoryColumns[$index] = $categoryMap[$headerClean];
             $matchedHeaders[] = $header;
-        } else {
-            $unmatchedHeaders[] = $header;
+            continue;
         }
+        
+        // Try match by name (job title)
+        if (isset($categoryNameMap[$headerClean])) {
+            $categoryColumns[$index] = $categoryNameMap[$headerClean];
+            $matchedHeaders[] = $header;
+            continue;
+        }
+        
+        // Check if header has format "CODE (Name)" - extract code
+        if (preg_match('/^([0-9\.]+)\s*\((.+)\)$/', $headerClean, $matches)) {
+            $code = trim($matches[1]);
+            $name = trim($matches[2]);
+            
+            // Try match by code
+            if (isset($categoryMap[$code])) {
+                $categoryColumns[$index] = $categoryMap[$code];
+                $matchedHeaders[] = $header;
+                continue;
+            }
+            
+            // Try match by name
+            if (isset($categoryNameMap[strtoupper($name)])) {
+                $categoryColumns[$index] = $categoryNameMap[strtoupper($name)];
+                $matchedHeaders[] = $header;
+                continue;
+            }
+        }
+        
+        // Try match without spaces and special characters (for names)
+        $headerCleanNoSpecial = strtoupper(str_replace([' ', '-', '_', '.'], '', $headerClean));
+        if (isset($categoryNameMap[$headerCleanNoSpecial])) {
+            $categoryColumns[$index] = $categoryNameMap[$headerCleanNoSpecial];
+            $matchedHeaders[] = $header;
+            continue;
+        }
+        
+        // Try match without "Assistant" prefix
+        if (strpos($headerClean, 'ASSISTANT') !== false) {
+            $headerWithoutAssistant = str_replace('ASSISTANT', '', $headerClean);
+            $headerWithoutAssistant = trim($headerWithoutAssistant);
+            if (isset($categoryNameMap[$headerWithoutAssistant])) {
+                $categoryColumns[$index] = $categoryNameMap[$headerWithoutAssistant];
+                $matchedHeaders[] = $header;
+                continue;
+            }
+        }
+        
+        $unmatchedHeaders[] = $header;
     }
 
     if (empty($categoryColumns)) {
+        $availableNames = implode(', ', $categories->pluck('name')->toArray());
+        $availableCodes = implode(', ', $categories->pluck('code')->toArray());
+        $yourHeaders = implode(', ', $headers);
+        
         return redirect()->route('import.index')
-            ->with('error', 'No matching category columns found. 
-            Please check column headers match job title codes. 
-            Available codes: ' . implode(', ', $categories->pluck('code')->toArray()) . '
-            Your headers: ' . implode(', ', $headers));
+            ->with('error', "No matching category columns found. 
+            <br><br><strong>Available Job Titles:</strong> {$availableNames}
+            <br><strong>Available Codes:</strong> {$availableCodes}
+            <br><strong>Your Headers:</strong> {$yourHeaders}
+            <br><br>Please ensure your column headers match either the Job Title Name or Code.");
     }
 
     $imported = 0;
@@ -234,11 +296,21 @@ public function import(Request $request)
 
         $message = "✅ Successfully imported {$imported} new records and updated {$updated} existing records.";
         if ($skipped > 0) $message .= " Skipped {$skipped} empty rows.";
-        if (!empty($errors)) {
-            $message .= " Errors: " . implode(', ', array_slice($errors, 0, 5));
-            if (count($errors) > 5) $message .= " and " . (count($errors) - 5) . " more errors.";
+        
+        // Show matched headers info
+        if (!empty($matchedHeaders)) {
+            $message .= "<br><br>📌 Matched Headers: " . implode(', ', array_slice($matchedHeaders, 0, 10));
+            if (count($matchedHeaders) > 10) {
+                $message .= " and " . (count($matchedHeaders) - 10) . " more...";
+            }
         }
-
+        
+        if (!empty($errors)) {
+            $message .= "<br><br>⚠️ Errors:<br>" . implode('<br>', array_slice($errors, 0, 5));
+            if (count($errors) > 5) {
+                $message .= "<br> and " . (count($errors) - 5) . " more errors.";
+            }
+        }
         return redirect()->route('import.index')
             ->with('success', $message);
 
@@ -250,170 +322,167 @@ public function import(Request $request)
 }
 
     /**
- * Import job title structure
- */
-private function importStructure($dataRows, $headers, $user)
-{
-    // Clean headers - remove empty and trim
-    $cleanHeaders = array_map('trim', $headers);
-    
-    // Try to detect columns - more flexible matching
-    $departmentIndex = null;
-    $codeIndex = null;
-    $jobTitleIndex = null;
-    $employmentTypeIndex = null;
-
-    foreach ($cleanHeaders as $index => $header) {
-        $headerLower = strtolower(trim($header));
+     * Import job title structure
+     */
+    private function importStructure($dataRows, $headers, $user)
+    {
+        // Clean headers - remove empty and trim
+        $cleanHeaders = array_map('trim', $headers);
         
-        // Department detection
-        if (strpos($headerLower, 'department') !== false || 
-            strpos($headerLower, 'dept') !== false || 
-            strpos($headerLower, 'depart') !== false ||
-            $headerLower === 'department') {
-            $departmentIndex = $index;
-        } 
-        // Code detection
-        elseif (strpos($headerLower, 'code') !== false || 
-                strpos($headerLower, 'id') !== false || 
-                strpos($headerLower, 'code') !== false ||
-                $headerLower === 'code') {
-            $codeIndex = $index;
-        } 
-        // Job Title detection
-        elseif (strpos($headerLower, 'job') !== false || 
-                strpos($headerLower, 'title') !== false || 
-                strpos($headerLower, 'position') !== false ||
-                strpos($headerLower, 'job title') !== false ||
-                $headerLower === 'jobtitle' ||
-                $headerLower === 'job_title') {
-            $jobTitleIndex = $index;
-        } 
-        // Employment Type detection
-        elseif (strpos($headerLower, 'employment') !== false || 
-                strpos($headerLower, 'type') !== false ||
-                strpos($headerLower, 'emp type') !== false ||
-                $headerLower === 'employmenttype' ||
-                $headerLower === 'employment_type') {
-            $employmentTypeIndex = $index;
+        // Try to detect columns - more flexible matching
+        $departmentIndex = null;
+        $codeIndex = null;
+        $jobTitleIndex = null;
+        $employmentTypeIndex = null;
+
+        foreach ($cleanHeaders as $index => $header) {
+            $headerLower = strtolower(trim($header));
+            
+            // Department detection
+            if (strpos($headerLower, 'department') !== false || 
+                strpos($headerLower, 'dept') !== false || 
+                strpos($headerLower, 'depart') !== false ||
+                $headerLower === 'department') {
+                $departmentIndex = $index;
+            } 
+            // Code detection
+            elseif (strpos($headerLower, 'code') !== false || 
+                    strpos($headerLower, 'id') !== false || 
+                    $headerLower === 'code') {
+                $codeIndex = $index;
+            } 
+            // Job Title detection
+            elseif (strpos($headerLower, 'job') !== false || 
+                    strpos($headerLower, 'title') !== false || 
+                    strpos($headerLower, 'position') !== false ||
+                    strpos($headerLower, 'job title') !== false ||
+                    $headerLower === 'jobtitle' ||
+                    $headerLower === 'job_title') {
+                $jobTitleIndex = $index;
+            } 
+            // Employment Type detection
+            elseif (strpos($headerLower, 'employment') !== false || 
+                    strpos($headerLower, 'type') !== false ||
+                    strpos($headerLower, 'emp type') !== false ||
+                    $headerLower === 'employmenttype' ||
+                    $headerLower === 'employment_type') {
+                $employmentTypeIndex = $index;
+            }
         }
-    }
 
-    // If we couldn't detect columns, show error with available headers
-    if ($departmentIndex === null || $codeIndex === null || $jobTitleIndex === null) {
-        $availableHeaders = implode(', ', $cleanHeaders);
-        return redirect()->route('import.index')
-            ->with('error', "Could not detect required columns. Found headers: {$availableHeaders}. Required: Department, Code, Job Title, Employment Type");
-    }
+        // If we couldn't detect columns, show error with available headers
+        if ($departmentIndex === null || $codeIndex === null || $jobTitleIndex === null) {
+            $availableHeaders = implode(', ', $cleanHeaders);
+            return redirect()->route('import.index')
+                ->with('error', "Could not detect required columns. Found headers: {$availableHeaders}. Required: Department, Code, Job Title, Employment Type");
+        }
 
-    $imported = 0;
-    $errors = [];
-    $skipped = 0;
-    $validTypes = ['Permanent', 'Contract', 'Daily'];
+        $imported = 0;
+        $errors = [];
+        $skipped = 0;
+        $validTypes = ['Permanent', 'Contract', 'Daily'];
 
-    DB::beginTransaction();
+        DB::beginTransaction();
 
-    try {
-        foreach ($dataRows as $rowIndex => $row) {
-            // Get values from detected columns
-            $department = trim($row[$departmentIndex] ?? '');
-            $code = trim($row[$codeIndex] ?? '');
-            $jobTitle = trim($row[$jobTitleIndex] ?? '');
-            $employmentType = 'Permanent'; // Default
-            
-            // Get employment type if column exists
-            if ($employmentTypeIndex !== null) {
-                $employmentType = trim($row[$employmentTypeIndex] ?? 'Permanent');
-            }
+        try {
+            foreach ($dataRows as $rowIndex => $row) {
+                // Get values from detected columns
+                $department = trim($row[$departmentIndex] ?? '');
+                $code = trim($row[$codeIndex] ?? '');
+                $jobTitle = trim($row[$jobTitleIndex] ?? '');
+                $employmentType = 'Permanent'; // Default
+                
+                // Get employment type if column exists
+                if ($employmentTypeIndex !== null) {
+                    $employmentType = trim($row[$employmentTypeIndex] ?? 'Permanent');
+                }
 
-            // Skip empty rows
-            if (empty($department) && empty($code) && empty($jobTitle)) {
-                $skipped++;
-                continue;
-            }
+                // Skip empty rows
+                if (empty($department) && empty($code) && empty($jobTitle)) {
+                    $skipped++;
+                    continue;
+                }
 
-            // Validate required fields
-            if (empty($department)) {
-                $errors[] = "Row " . ($rowIndex + 2) . ": Department is required";
-                continue;
-            }
-            
-            if (empty($code)) {
-                $errors[] = "Row " . ($rowIndex + 2) . ": Code is required";
-                continue;
-            }
-            
-            if (empty($jobTitle)) {
-                $errors[] = "Row " . ($rowIndex + 2) . ": Job Title is required";
-                continue;
-            }
+                // Validate required fields
+                if (empty($department)) {
+                    $errors[] = "Row " . ($rowIndex + 2) . ": Department is required";
+                    continue;
+                }
+                
+                if (empty($code)) {
+                    $errors[] = "Row " . ($rowIndex + 2) . ": Code is required";
+                    continue;
+                }
+                
+                if (empty($jobTitle)) {
+                    $errors[] = "Row " . ($rowIndex + 2) . ": Job Title is required";
+                    continue;
+                }
 
-            // Validate and format employment type
-            if (!empty($employmentType)) {
-                // Try to match employment type
-                $empTypeLower = strtolower(trim($employmentType));
-                if (strpos($empTypeLower, 'permanent') !== false || strpos($empTypeLower, 'perm') !== false) {
-                    $employmentType = 'Permanent';
-                } elseif (strpos($empTypeLower, 'contract') !== false || strpos($empTypeLower, 'cont') !== false) {
-                    $employmentType = 'Contract';
-                } elseif (strpos($empTypeLower, 'daily') !== false || strpos($empTypeLower, 'day') !== false) {
-                    $employmentType = 'Daily';
+                // Validate and format employment type
+                if (!empty($employmentType)) {
+                    $empTypeLower = strtolower(trim($employmentType));
+                    if (strpos($empTypeLower, 'permanent') !== false || strpos($empTypeLower, 'perm') !== false) {
+                        $employmentType = 'Permanent';
+                    } elseif (strpos($empTypeLower, 'contract') !== false || strpos($empTypeLower, 'cont') !== false) {
+                        $employmentType = 'Contract';
+                    } elseif (strpos($empTypeLower, 'daily') !== false || strpos($empTypeLower, 'day') !== false) {
+                        $employmentType = 'Daily';
+                    } else {
+                        $employmentType = 'Permanent';
+                    }
                 } else {
-                    // Default to Permanent if not recognized
                     $employmentType = 'Permanent';
                 }
-            } else {
-                $employmentType = 'Permanent';
+
+                // Check if category already exists
+                $existing = Category::where('code', $code)->first();
+                if ($existing) {
+                    $errors[] = "Row " . ($rowIndex + 2) . ": Code '{$code}' already exists. Skipping.";
+                    continue;
+                }
+
+                // Get max row order
+                $maxOrder = Category::max('row_order') ?? 0;
+
+                // Create category
+                Category::create([
+                    'code' => $code,
+                    'name' => $jobTitle,
+                    'department' => $department,
+                    'employment_type' => $employmentType,
+                    'row_order' => $maxOrder + 1,
+                    'is_reconciliation' => false,
+                ]);
+
+                $imported++;
             }
 
-            // Check if category already exists
-            $existing = Category::where('code', $code)->first();
-            if ($existing) {
-                $errors[] = "Row " . ($rowIndex + 2) . ": Code '{$code}' already exists. Skipping.";
-                continue;
-            }
-
-            // Get max row order
-            $maxOrder = Category::max('row_order') ?? 0;
-
-            // Create category
-            Category::create([
-                'code' => $code,
-                'name' => $jobTitle,
-                'department' => $department,
-                'employment_type' => $employmentType,
-                'row_order' => $maxOrder + 1,
-                'is_reconciliation' => false,
+            // Log the import
+            AuditLog::create([
+                'username' => $user->username,
+                'action' => 'import_structure',
+                'details' => "Imported {$imported} job titles",
             ]);
 
-            $imported++;
+            DB::commit();
+
+            $message = "✅ Successfully imported {$imported} job titles.";
+            if ($skipped > 0) $message .= " Skipped {$skipped} empty rows.";
+            if (!empty($errors)) {
+                $message .= "<br><br>⚠️ Errors:<br>" . implode('<br>', array_slice($errors, 0, 10));
+                if (count($errors) > 10) $message .= "<br> and " . (count($errors) - 10) . " more errors.";
+            }
+
+            return redirect()->route('import.index')
+                ->with('success', $message);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->route('import.index')
+                ->with('error', 'Failed to import structure: ' . $e->getMessage());
         }
-
-        // Log the import
-        AuditLog::create([
-            'username' => $user->username,
-            'action' => 'import_structure',
-            'details' => "Imported {$imported} job titles",
-        ]);
-
-        DB::commit();
-
-        $message = "✅ Successfully imported {$imported} job titles.";
-        if ($skipped > 0) $message .= " Skipped {$skipped} empty rows.";
-        if (!empty($errors)) {
-            $message .= "<br><br>⚠️ Errors:<br>" . implode('<br>', array_slice($errors, 0, 10));
-            if (count($errors) > 10) $message .= "<br> and " . (count($errors) - 10) . " more errors.";
-        }
-
-        return redirect()->route('import.index')
-            ->with('success', $message);
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        return redirect()->route('import.index')
-            ->with('error', 'Failed to import structure: ' . $e->getMessage());
     }
-}
 
     /**
      * Download template
@@ -429,101 +498,107 @@ private function importStructure($dataRows, $headers, $user)
         }
     }
 
+    /**
+     * Download headcount template
+     */
     private function downloadHeadcountTemplate()
-{
-    $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
-    $sheet = $spreadsheet->getActiveSheet();
-    $sheet->setTitle('Headcount Data');
+    {
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Headcount Data');
 
-    // Get existing categories for template - FIXED: Get actual job titles
-    $categories = Category::where('is_reconciliation', false)
-        ->orderBy('row_order')
-        ->get();
+        // Get existing categories for template
+        $categories = Category::where('is_reconciliation', false)
+            ->orderBy('row_order')
+            ->get();
 
-    // If no categories exist, use default headers
-    if ($categories->isEmpty()) {
-        $headers = ['Date', 'Job Title 1', 'Job Title 2', 'Job Title 3'];
-    } else {
+        // Build headers
         $headers = ['Date'];
         foreach ($categories as $category) {
             $headers[] = $category->code . ' (' . $category->name . ')';
         }
-    }
 
-    // Set headers with styling
-    $col = 'A';
-    foreach ($headers as $header) {
-        $sheet->setCellValue($col . '1', $header);
-        $sheet->getStyle($col . '1')->applyFromArray([
-            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
-            'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 
-                       'startColor' => ['rgb' => '16324F']],
-            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
-        ]);
-        $col++;
-    }
-
-    // Sample data - only if we have categories
-    if (!$categories->isEmpty()) {
-        $sampleData = [];
-        $sampleData[] = ['2026-07-15'];
-        $sampleData[] = ['2026-07-16'];
-        $sampleData[] = ['2026-07-17'];
-        
-        // Add sample values for each category
-        $values = [5, 3, 2];
-        foreach ($sampleData as $index => &$row) {
-            foreach ($categories as $catIndex => $category) {
-                $row[] = $values[$catIndex % count($values)] ?? 0;
-            }
+        // If no categories exist, use default headers
+        if ($categories->isEmpty()) {
+            $headers = ['Date', 'Job Title 1', 'Job Title 2', 'Job Title 3'];
         }
-        
+
+        // Set headers with styling
+        $col = 0;
+        foreach ($headers as $header) {
+            $columnLetter = Coordinate::stringFromColumnIndex($col + 1);
+            $sheet->setCellValue($columnLetter . '1', $header);
+            $sheet->getStyle($columnLetter . '1')->applyFromArray([
+                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 
+                           'startColor' => ['rgb' => '16324F']],
+                'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
+            ]);
+            $col++;
+        }
+        $totalColumns = $col;
+
         $row = 2;
-        foreach ($sampleData as $dataRow) {
-            $col = 'A';
-            foreach ($dataRow as $value) {
-                $sheet->setCellValue($col . $row, $value);
+
+        // Sample data
+        if (!$categories->isEmpty()) {
+            $sampleDates = ['2026-07-15', '2026-07-16', '2026-07-17'];
+            $sampleValues = [5, 3, 2];
+            
+            foreach ($sampleDates as $dateIndex => $sampleDate) {
+                $col = 0;
+                $columnLetter = Coordinate::stringFromColumnIndex($col + 1);
+                $sheet->setCellValue($columnLetter . $row, $sampleDate);
                 $col++;
+                
+                foreach ($categories as $catIndex => $category) {
+                    $value = $sampleValues[$catIndex % count($sampleValues)] ?? 0;
+                    $columnLetter = Coordinate::stringFromColumnIndex($col + 1);
+                    $sheet->setCellValue($columnLetter . $row, $value);
+                    $col++;
+                }
+                $row++;
             }
-            $row++;
         }
+
+        // Instructions
+        $row += 2;
+        $sheet->setCellValue('A' . $row, '📌 INSTRUCTIONS:');
+        $sheet->getStyle('A' . $row)->applyFromArray(['font' => ['bold' => true, 'size' => 12]]);
+        $row++;
+        
+        $sheet->setCellValue('A' . $row, '1. The "Date" column must be in YYYY-MM-DD format');
+        $row++;
+        $sheet->setCellValue('A' . $row, '2. Column headers must match the Job Title Codes or Names shown above');
+        $row++;
+        $sheet->setCellValue('A' . $row, '3. Headcount must be whole numbers (0 or positive)');
+        $row++;
+        $sheet->setCellValue('A' . $row, '4. Delete the sample rows before importing your data');
+        $row++;
+        $sheet->setCellValue('A' . $row, '5. Do not change the header row');
+        
+        $sheet->getStyle('A' . ($row - 5) . ':A' . $row)->applyFromArray([
+            'font' => ['color' => ['rgb' => 'A61B1B']],
+        ]);
+
+        // Auto-size columns
+        for ($i = 1; $i <= $totalColumns; $i++) {
+            $columnLetter = Coordinate::stringFromColumnIndex($i);
+            $sheet->getColumnDimension($columnLetter)->setAutoSize(true);
+        }
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $filename = 'HR_Headcount_Import_Template.xlsx';
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        $writer->save('php://output');
+        exit;
     }
 
-    // Instructions
-    $row += 2;
-    $sheet->setCellValue('A' . $row, '📌 INSTRUCTIONS:');
-    $sheet->getStyle('A' . $row)->applyFromArray(['font' => ['bold' => true, 'size' => 12]]);
-    $row++;
-    
-    $sheet->setCellValue('A' . $row, '1. The "Date" column must be in YYYY-MM-DD format');
-    $row++;
-    $sheet->setCellValue('A' . $row, '2. Column headers must match the Job Title Codes shown above');
-    $row++;
-    $sheet->setCellValue('A' . $row, '3. Headcount must be whole numbers (0 or positive)');
-    $row++;
-    $sheet->setCellValue('A' . $row, '4. Delete the sample rows before importing your data');
-    $row++;
-    $sheet->setCellValue('A' . $row, '5. Do not change the header row');
-    
-    // Style instructions
-    $sheet->getStyle('A' . ($row - 5) . ':A' . $row)->applyFromArray([
-        'font' => ['color' => ['rgb' => 'A61B1B']],
-    ]);
-
-    // Auto-size columns
-    foreach (range('A', $col) as $colLetter) {
-        $sheet->getColumnDimension($colLetter)->setAutoSize(true);
-    }
-
-    $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
-    $filename = 'HR_Headcount_Import_Template.xlsx';
-
-    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    header('Content-Disposition: attachment; filename="' . $filename . '"');
-    $writer->save('php://output');
-    exit;
-}
-
+    /**
+     * Download structure template
+     */
     private function downloadStructureTemplate()
     {
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
@@ -531,16 +606,19 @@ private function importStructure($dataRows, $headers, $user)
         $sheet->setTitle('Job Titles');
 
         $headers = ['Department', 'Code', 'Job Title', 'Employment Type'];
-        $col = 'A';
+        $col = 0;
         foreach ($headers as $header) {
-            $sheet->setCellValue($col . '1', $header);
-            $sheet->getStyle($col . '1')->applyFromArray([
-                'font' => ['bold' => true],
+            $columnLetter = Coordinate::stringFromColumnIndex($col + 1);
+            $sheet->setCellValue($columnLetter . '1', $header);
+            $sheet->getStyle($columnLetter . '1')->applyFromArray([
+                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
                 'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 
-                           'startColor' => ['rgb' => 'DCE5EE']],
+                           'startColor' => ['rgb' => '16324F']],
+                'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
             ]);
             $col++;
         }
+        $totalColumns = $col;
 
         $sampleData = [
             ['Engineering', 'ENG-001', 'Senior Engineer', 'Permanent'],
@@ -552,9 +630,10 @@ private function importStructure($dataRows, $headers, $user)
 
         $row = 2;
         foreach ($sampleData as $dataRow) {
-            $col = 'A';
+            $col = 0;
             foreach ($dataRow as $value) {
-                $sheet->setCellValue($col . $row, $value);
+                $columnLetter = Coordinate::stringFromColumnIndex($col + 1);
+                $sheet->setCellValue($columnLetter . $row, $value);
                 $col++;
             }
             $row++;
@@ -565,8 +644,10 @@ private function importStructure($dataRows, $headers, $user)
             'font' => ['italic' => true, 'color' => ['rgb' => 'FF0000']],
         ]);
 
-        foreach (range('A', $col) as $colLetter) {
-            $sheet->getColumnDimension($colLetter)->setAutoSize(true);
+        // Auto-size columns
+        for ($i = 1; $i <= $totalColumns; $i++) {
+            $columnLetter = Coordinate::stringFromColumnIndex($i);
+            $sheet->getColumnDimension($columnLetter)->setAutoSize(true);
         }
 
         $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);

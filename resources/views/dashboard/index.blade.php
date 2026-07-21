@@ -111,7 +111,7 @@
             top: 0;
             left: 0;
             right: 0;
-            height: 3px;
+            height: 4px;
         }
         .kpi-card:nth-child(1)::before { background: #1b7f79; }
         .kpi-card:nth-child(2)::before { background: #397a9f; }
@@ -500,11 +500,11 @@
     <!-- ============================================ -->
     <div class="dashboard-header">
         <div>
-            <h1>HR Manpower Dashboard</h1>
+            <h1>📊 HR Manpower Dashboard</h1>
             <div class="subtitle">Permanent, Contract and Daily Labor figures update automatically from saved job-title entries</div>
         </div>
         <div class="date-badge">
-            Date: {{ \Carbon\Carbon::parse($selectedDate)->format('F d, Y') }}
+            📅 {{ \Carbon\Carbon::parse($selectedDate)->format('F d, Y') }}
         </div>
     </div>
 
@@ -514,7 +514,7 @@
     <div class="filter-bar">
         <form method="get" action="{{ route('dashboard') }}">
             <div class="field">
-                <label>Report Date</label>
+                <label>📅 Report Date</label>
                 <select name="date">
                     @foreach($dates as $date)
                         <option value="{{ $date }}" @if($date == $selectedDate) selected @endif>
@@ -524,7 +524,7 @@
                 </select>
             </div>
             <div class="field">
-                <label>Project</label>
+                <label>🏗️ Project</label>
                 <select name="project">
                     <option value="0">All Projects</option>
                     @foreach($projects as $project)
@@ -535,7 +535,7 @@
                 </select>
             </div>
             <div class="field">
-                <label>Project Status</label>
+                <label>📊 Project Status</label>
                 <select name="project_status">
                     <option value="All" @if($selectedProjectStatus == 'All') selected @endif>All Statuses</option>
                     <option value="Active" @if($selectedProjectStatus == 'Active') selected @endif>Active</option>
@@ -543,7 +543,7 @@
                 </select>
             </div>
             <div class="field">
-                <label>Employee Type</label>
+                <label>👔 Employee Type</label>
                 <select name="type">
                     <option value="All" @if($selectedType == 'All') selected @endif>All Types</option>
                     <option value="Permanent" @if($selectedType == 'Permanent') selected @endif>Permanent</option>
@@ -552,9 +552,9 @@
                 </select>
             </div>
             <div class="actions">
-                <button type="submit">Update</button>
+                <button type="submit">🔄 Update</button>
                 <a class="btn light" href="{{ route('dashboard') }}">Reset</a>
-                <a class="btn secondary" href="{{ route('reports.dashboard') }}">Full Report</a>
+                <a class="btn secondary" href="{{ route('reports.dashboard') }}">📊 Full Report</a>
             </div>
         </form>
     </div>
@@ -569,7 +569,7 @@
                     <div class="label">Permanent</div>
                     <div class="value">{{ number_format($permanent) }}</div>
                 </div>
-                <div class="icon">P</div>
+                <div class="icon">👔</div>
             </div>
             <div class="kpi-footer">
                 <span class="change neutral">Current headcount</span>
@@ -582,7 +582,7 @@
                     <div class="label">Contract</div>
                     <div class="value">{{ number_format($contract) }}</div>
                 </div>
-                <div class="icon">C</div>
+                <div class="icon">📄</div>
             </div>
             <div class="kpi-footer">
                 <span class="change neutral">Current headcount</span>
@@ -595,7 +595,7 @@
                     <div class="label">Daily Labor</div>
                     <div class="value">{{ number_format($daily) }}</div>
                 </div>
-                <div class="icon">D</div>
+                <div class="icon">🔧</div>
             </div>
             <div class="kpi-footer">
                 <span class="change neutral">Current headcount</span>
@@ -608,7 +608,7 @@
                     <div class="label">Total Manpower</div>
                     <div class="value">{{ number_format($grandTotal) }}</div>
                 </div>
-                <div class="icon">T</div>
+                <div class="icon">🏆</div>
             </div>
             <div class="kpi-footer">
                 <span class="change neutral">Total headcount</span>
@@ -623,7 +623,7 @@
         <!-- Pie Chart -->
         <div class="chart-card">
             <div class="chart-header">
-                <h3>Employment Status Distribution</h3>
+                <h3>📊 Employment Status Distribution</h3>
                 <span class="badge-count">{{ $selectedDate }}</span>
             </div>
             <div class="chart-container">
@@ -680,7 +680,7 @@
                     </div>
                 @else
                     <div class="empty-state">
-                        <div class="icon">-</div>
+                        <div class="icon">📭</div>
                         <h4>No data available</h4>
                         <p>No entries found for the selected date.</p>
                     </div>
@@ -691,7 +691,7 @@
         <!-- Bar Chart -->
         <div class="chart-card">
             <div class="chart-header">
-                <h3>Manpower by Project</h3>
+                <h3>📈 Manpower by Project</h3>
                 <span class="badge-count">{{ $graphProjects->count() }} projects</span>
             </div>
             <div class="chart-container">
@@ -718,7 +718,7 @@
                     @endforeach
                 @else
                     <div class="empty-state">
-                        <div class="icon">-</div>
+                        <div class="icon">📭</div>
                         <h4>No data available</h4>
                         <p>No projects found for the selected date.</p>
                     </div>
@@ -732,8 +732,8 @@
     <!-- ============================================ -->
     <div class="table-card">
         <div class="table-header">
-            <h3>Dynamic Management Report by Project</h3>
-            <span class="records-count">{{ $tableData->count() }} projects</span>
+            <h3>📋 Dynamic Management Report by Project</h3>
+            <span class="records-count">{{ $tableData->count() }} projects · {{ $selectedDate }}</span>
         </div>
 
         <div class="table-wrap">
@@ -781,7 +781,7 @@
                         <tr>
                             <td colspan="6">
                                 <div class="empty-state">
-                                    <div class="icon">-</div>
+                                    <div class="icon">📭</div>
                                     <h4>No data available</h4>
                                     <p>No entries found for the selected filters.</p>
                                 </div>
@@ -807,11 +807,11 @@
     <!-- QUICK ACTIONS -->
     <!-- ============================================ -->
     <div class="quick-actions">
-        <span class="label">Quick Actions:</span>
-        <a href="{{ route('daily.index') }}" class="btn light" style="padding:6px 14px; font-size:12px;">Daily Input</a>
-        <a href="{{ route('reports.dashboard') }}" class="btn light" style="padding:6px 14px; font-size:12px;">Full Reports</a>
-        <a href="{{ route('comparison.index') }}" class="btn light" style="padding:6px 14px; font-size:12px;">Comparison</a>
-        <a href="{{ route('reports.export') }}" class="btn light" style="padding:6px 14px; font-size:12px;">Export Report</a>
-        <a href="{{ route('import.index') }}" class="btn light" style="padding:6px 14px; font-size:12px;">Import Data</a>
+        <span class="label">📌 Quick Actions:</span>
+        <a href="{{ route('daily.index') }}" class="btn light" style="padding:6px 14px; font-size:12px;">📝 Daily Input</a>
+        <a href="{{ route('reports.dashboard') }}" class="btn light" style="padding:6px 14px; font-size:12px;">📊 Full Reports</a>
+        <a href="{{ route('comparison.index') }}" class="btn light" style="padding:6px 14px; font-size:12px;">📈 Comparison</a>
+        <a href="{{ route('reports.export') }}" class="btn light" style="padding:6px 14px; font-size:12px;">📥 Export Report</a>
+        <a href="{{ route('import.index') }}" class="btn light" style="padding:6px 14px; font-size:12px;">📤 Import Data</a>
     </div>
 @endsection
