@@ -7,59 +7,175 @@ use App\Models\AuditLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
 
 class UserController extends Controller
 {
     /**
-     * Display the user management page (admin only)
+     * Display a listing of users
      */
     public function index()
     {
-        if (Auth::user()->role !== 'admin') {
-            return redirect()->route('dashboard')
-                ->with('error', 'Administrator access is required.');
-        }
-
         $users = User::orderBy('username')->get();
-        return view('users.index', compact('users'));
+        $stats = [
+            'total' => $users->count(),
+            'admins' => $users->where('role', 'admin')->count(),
+            'editors' => $users->where('role', 'editor')->count(),
+            'viewers' => $users->where('role', 'viewer')->count(),
+            'active' => $users->where('active', true)->count(),
+            'inactive' => $users->where('active', false)->count(),
+        ];
+        
+        return view('users.index', compact('users', 'stats'));
     }
 
     /**
-     * Create a new user (admin only)
+     * Store a newly created user
      */
     public function store(Request $request)
     {
-        if (Auth::user()->role !== 'admin') {
-            return redirect()->route('dashboard')
+        $user = Auth::user();
+
+        if (!$user->isAdmin()) {
+            return redirect()->route('users.index')
                 ->with('error', 'Administrator access is required.');
         }
 
-        $request->validate([
+        $validator = Validator::make($request->all(), [
             'username' => 'required|string|max:100|unique:users',
             'password' => 'required|string|min:6',
             'role' => 'required|in:admin,editor,viewer',
         ]);
 
-        $user = User::create([
-            'username' => $request->username,
-            'password_hash' => Hash::make($request->password),
-            'role' => $request->role,
-            'active' => true,
+        if ($validator->fails()) {
+            return redirect()->route('users.index')
+                ->withErrors($validator)
+                ->withInput();
+        }
+
+        try {
+            $newUser = User::create([
+                'username' => $request->username,
+                'password_hash' => Hash::make($request->password),
+                'role' => $request->role,
+                'active' => true,
+                'must_change' => true,
+            ]);
+
+            AuditLog::create([
+                'username' => $user->username,
+                'action' => 'create_user',
+                'details' => "{$newUser->username} ({$newUser->role})",
+            ]);
+
+            return redirect()->route('users.index')
+                ->with('success', "User '{$newUser->username}' created successfully.");
+
+        } catch (\Exception $e) {
+            return redirect()->route('users.index')
+                ->with('error', 'Failed to create user: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Toggle user active status
+     */
+    public function toggleActive(User $user)
+    {
+        $authUser = Auth::user();
+
+        if (!$authUser->isAdmin()) {
+            return redirect()->route('users.index')
+                ->with('error', 'Administrator access is required.');
+        }
+
+        if ($user->id === $authUser->id) {
+            return redirect()->route('users.index')
+                ->with('error', 'You cannot change your own status.');
+        }
+
+        $user->update(['active' => !$user->active]);
+
+        AuditLog::create([
+            'username' => $authUser->username,
+            'action' => 'toggle_user',
+            'details' => "{$user->username} active: " . ($user->active ? 'Enabled' : 'Disabled'),
+        ]);
+
+        $status = $user->active ? 'activated' : 'deactivated';
+        return redirect()->route('users.index')
+            ->with('success', "User '{$user->username}' {$status} successfully.");
+    }
+
+    /**
+     * Delete a user
+     */
+    public function destroy(User $user)
+    {
+        $authUser = Auth::user();
+
+        if (!$authUser->isAdmin()) {
+            return redirect()->route('users.index')
+                ->with('error', 'Administrator access is required.');
+        }
+
+        if ($user->id === $authUser->id) {
+            return redirect()->route('users.index')
+                ->with('error', 'You cannot delete your own account.');
+        }
+
+        $username = $user->username;
+
+        AuditLog::create([
+            'username' => $authUser->username,
+            'action' => 'delete_user',
+            'details' => $username,
+        ]);
+
+        $user->delete();
+
+        return redirect()->route('users.index')
+            ->with('success', "User '{$username}' deleted successfully.");
+    }
+
+    /**
+     * Reset user password
+     */
+    public function resetPassword(Request $request, User $user)
+    {
+        $authUser = Auth::user();
+
+        if (!$authUser->isAdmin()) {
+            return redirect()->route('users.index')
+                ->with('error', 'Administrator access is required.');
+        }
+
+        $validator = Validator::make($request->all(), [
+            'new_password' => 'required|string|min:6',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->route('users.index')
+                ->withErrors($validator);
+        }
+
+        $user->update([
+            'password_hash' => Hash::make($request->new_password),
             'must_change' => true,
         ]);
 
         AuditLog::create([
-            'username' => Auth::user()->username,
-            'action' => 'create_user',
-            'details' => "{$user->username} ({$user->role})",
+            'username' => $authUser->username,
+            'action' => 'reset_password',
+            'details' => "Password reset for {$user->username}",
         ]);
 
         return redirect()->route('users.index')
-            ->with('success', "User '{$user->username}' created successfully.");
+            ->with('success', "Password reset for '{$user->username}' successfully.");
     }
 
     /**
-     * Show the change password form
+     * Show change password form
      */
     public function showChangePasswordForm()
     {
@@ -71,13 +187,17 @@ class UserController extends Controller
      */
     public function changePassword(Request $request)
     {
-        $request->validate([
+        $user = Auth::user();
+
+        $validator = Validator::make($request->all(), [
             'current' => 'required|string',
             'new' => 'required|string|min:8',
             'confirm' => 'required|string|same:new',
         ]);
 
-        $user = Auth::user();
+        if ($validator->fails()) {
+            return back()->withErrors($validator);
+        }
 
         // Verify current password
         if (!Hash::check($request->current, $user->password_hash)) {
@@ -98,85 +218,5 @@ class UserController extends Controller
 
         return redirect()->route('dashboard')
             ->with('success', 'Password changed successfully.');
-    }
-
-    /**
-     * Toggle user active status (admin only)
-     */
-    public function toggleActive(User $user)
-    {
-        if (Auth::user()->role !== 'admin') {
-            return redirect()->route('dashboard')
-                ->with('error', 'Administrator access is required.');
-        }
-
-        $user->update(['active' => !$user->active]);
-
-        AuditLog::create([
-            'username' => Auth::user()->username,
-            'action' => 'toggle_user',
-            'details' => "{$user->username} active: {$user->active}",
-        ]);
-
-        return redirect()->route('users.index')
-            ->with('success', "User '{$user->username}' status updated.");
-    }
-
-    /**
-     * Delete a user (admin only)
-     */
-    public function destroy(User $user)
-    {
-        if (Auth::user()->role !== 'admin') {
-            return redirect()->route('dashboard')
-                ->with('error', 'Administrator access is required.');
-        }
-
-        if ($user->id === Auth::id()) {
-            return redirect()->route('users.index')
-                ->with('error', 'You cannot delete your own account.');
-        }
-
-        $username = $user->username;
-
-        AuditLog::create([
-            'username' => Auth::user()->username,
-            'action' => 'delete_user',
-            'details' => $username,
-        ]);
-
-        $user->delete();
-
-        return redirect()->route('users.index')
-            ->with('success', "User '{$username}' deleted successfully.");
-    }
-
-    /**
-     * Reset user password (admin only)
-     */
-    public function resetPassword(Request $request, User $user)
-    {
-        if (Auth::user()->role !== 'admin') {
-            return redirect()->route('dashboard')
-                ->with('error', 'Administrator access is required.');
-        }
-
-        $request->validate([
-            'new_password' => 'required|string|min:6',
-        ]);
-
-        $user->update([
-            'password_hash' => Hash::make($request->new_password),
-            'must_change' => true,
-        ]);
-
-        AuditLog::create([
-            'username' => Auth::user()->username,
-            'action' => 'reset_password',
-            'details' => "Password reset for {$user->username}",
-        ]);
-
-        return redirect()->route('users.index')
-            ->with('success', "Password reset for '{$user->username}' successfully.");
     }
 }

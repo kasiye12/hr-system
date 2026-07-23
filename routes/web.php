@@ -12,6 +12,11 @@ use App\Http\Controllers\BackupController;
 use App\Http\Controllers\ImportController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\LeaveController;
+use App\Http\Controllers\EthiopianLeaveController;
+use App\Http\Controllers\LeaveSettingsController;
+use App\Http\Controllers\LeaveImportController;
+use App\Http\Controllers\CarryForwardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -71,6 +76,7 @@ Route::middleware(['auth'])->group(function () {
     // REPORTS
     // ============================================
     Route::prefix('reports')->name('reports.')->group(function () {
+        Route::get('/export', [ReportController::class, 'export'])->name('export');
         Route::get('/', [ReportController::class, 'index'])->name('index');
         Route::get('/dashboard', [ReportController::class, 'dashboard'])->name('dashboard');
         Route::get('/export', [ReportController::class, 'export'])->name('export');
@@ -100,10 +106,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/export-selection', [ApplicantController::class, 'exportSelection'])->name('export-selection');
         Route::get('/export-profile', [ApplicantController::class, 'exportSelectionProfile'])->name('export-profile');
         Route::get('/profile/{id}', [ApplicantController::class, 'exportSingleProfile'])->name('profile');
-            // Experience & Ranking
-    Route::get('/experience/{id}', [ApplicantController::class, 'calculateExperience'])->name('experience');
-    Route::get('/ranking/{positionId}', [ApplicantController::class, 'getRanking'])->name('ranking');
-    Route::post('/ranks/update/{positionId}', [ApplicantController::class, 'updateRanks'])->name('ranks.update');
+        Route::get('/experience/{id}', [ApplicantController::class, 'calculateExperience'])->name('experience');
+        Route::get('/ranking/{positionId}', [ApplicantController::class, 'getRanking'])->name('ranking');
+        Route::post('/ranks/update/{positionId}', [ApplicantController::class, 'updateRanks'])->name('ranks.update');
     });
 
     // ============================================
@@ -132,10 +137,71 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // ============================================
+    // LEAVE MANAGEMENT - ETHIOPIAN PROCLAMATION 1156/2019
+    // ============================================
+    Route::prefix('leaves')->name('leaves.')->group(function () {
+        Route::get('/', [EthiopianLeaveController::class, 'index'])->name('index');
+        Route::get('/create', [EthiopianLeaveController::class, 'create'])->name('create');
+        Route::post('/', [EthiopianLeaveController::class, 'store'])->name('store');
+        Route::post('/{id}/approve', [EthiopianLeaveController::class, 'approve'])->name('approve');
+        Route::post('/{id}/reject', [EthiopianLeaveController::class, 'reject'])->name('reject');
+        Route::post('/{id}/cancel', [EthiopianLeaveController::class, 'cancel'])->name('cancel');
+        Route::get('/balances', [EthiopianLeaveController::class, 'balances'])->name('balances');
+        Route::get('/calendar', [EthiopianLeaveController::class, 'calendar'])->name('calendar');
+        Route::get('/report', [EthiopianLeaveController::class, 'report'])->name('report');
+        Route::get('/calculate/{applicantId}', [EthiopianLeaveController::class, 'calculateEntitlement'])->name('calculate');
+        Route::get('/breakdown', [EthiopianLeaveController::class, 'breakdown'])->name('breakdown');
+        Route::get('/documents', function () {
+            return view('leaves.documents');
+        })->name('documents');
+    });
+
+    // ============================================
+    // LEAVE SETTINGS (Admin only)
+    // ============================================
+    Route::prefix('leaves/settings')->name('leaves.settings.')->middleware('admin')->group(function () {
+        Route::get('/', [LeaveSettingsController::class, 'index'])->name('index');
+        Route::post('/type', [LeaveSettingsController::class, 'storeLeaveType'])->name('store-type');
+        Route::put('/type/{id}', [LeaveSettingsController::class, 'updateLeaveType'])->name('update-type');
+        Route::post('/type/{id}/toggle', [LeaveSettingsController::class, 'toggleLeaveType'])->name('toggle-type');
+        Route::delete('/type/{id}', [LeaveSettingsController::class, 'deleteLeaveType'])->name('delete-type');
+        Route::post('/holiday', [LeaveSettingsController::class, 'storeHoliday'])->name('store-holiday');
+        Route::delete('/holiday/{id}', [LeaveSettingsController::class, 'deleteHoliday'])->name('delete-holiday');
+        Route::post('/config', [LeaveSettingsController::class, 'updateSettings'])->name('update-config');
+    });
+
+    // ============================================
+    // LEAVE IMPORT (Admin only)
+    // ============================================
+    Route::prefix('leaves/import')->name('leaves.import.')->middleware('admin')->group(function () {
+        Route::get('/', [LeaveImportController::class, 'index'])->name('index');
+        Route::post('/single', [LeaveImportController::class, 'storeSingle'])->name('store-single');
+        Route::post('/multiple', [LeaveImportController::class, 'storeMultiple'])->name('store-multiple');
+        Route::get('/template', [LeaveImportController::class, 'downloadTemplate'])->name('template');
+        Route::delete('/{id}', [LeaveImportController::class, 'destroy'])->name('destroy');
+    });
+
+    // ============================================
+    // CARRY FORWARD MANAGEMENT
+    // ============================================
+    Route::prefix('leaves/carryforward')->name('leaves.carryforward.')->group(function () {
+        Route::get('/', [CarryForwardController::class, 'index'])->name('index');
+        Route::post('/', [CarryForwardController::class, 'store'])->name('store');
+        Route::post('/{id}/approve', [CarryForwardController::class, 'approve'])->name('approve');
+        Route::post('/{id}/reject', [CarryForwardController::class, 'reject'])->name('reject');
+        Route::delete('/{id}', [CarryForwardController::class, 'destroy'])->name('destroy');
+        Route::post('/recalculate', [CarryForwardController::class, 'recalculate'])->name('recalculate');
+        Route::post('/clear/{id}', [CarryForwardController::class, 'clearExpired'])->name('clear');
+        Route::post('/clear-expired', [CarryForwardController::class, 'clearAllExpired'])->name('clear-expired');
+        Route::post('/clear/{applicantId}', [CarryForwardController::class, 'clear'])->name('clear');
+    });
+
+    // ============================================
     // ADMIN ROUTES
     // ============================================
     Route::middleware(['admin'])->group(function () {
         
+        // Users Management
         Route::prefix('users')->name('users.')->group(function () {
             Route::get('/', [UserController::class, 'index'])->name('index');
             Route::post('/', [UserController::class, 'store'])->name('store');
@@ -144,6 +210,7 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/{user}/reset-password', [UserController::class, 'resetPassword'])->name('reset-password');
         });
 
+        // Backup
         Route::prefix('backup')->name('backup.')->group(function () {
             Route::get('/', [BackupController::class, 'index'])->name('index');
             Route::get('/download', [BackupController::class, 'download'])->name('download');
@@ -160,92 +227,6 @@ Route::middleware(['auth'])->group(function () {
 Route::fallback(function () {
     return redirect()->route('dashboard');
 });
-
-// ============================================
-// LEAVE MANAGEMENT ROUTES
-// ============================================
-Route::prefix('leaves')->name('leaves.')->group(function () {
-    Route::get('/', [App\Http\Controllers\LeaveController::class, 'index'])->name('index');
-    Route::get('/create', [App\Http\Controllers\LeaveController::class, 'create'])->name('create');
-    Route::post('/', [App\Http\Controllers\LeaveController::class, 'store'])->name('store');
-    Route::post('/{id}/approve', [App\Http\Controllers\LeaveController::class, 'approve'])->name('approve');
-    Route::post('/{id}/reject', [App\Http\Controllers\LeaveController::class, 'reject'])->name('reject');
-    Route::post('/{id}/cancel', [App\Http\Controllers\LeaveController::class, 'cancel'])->name('cancel');
-    Route::get('/balances', [App\Http\Controllers\LeaveController::class, 'balances'])->name('balances');
-    Route::get('/calendar', [App\Http\Controllers\LeaveController::class, 'calendar'])->name('calendar');
-    Route::get('/report', [App\Http\Controllers\LeaveController::class, 'report'])->name('report');
-    Route::get('/calculate/{applicantId}', [App\Http\Controllers\LeaveController::class, 'calculateEntitlement'])->name('calculate');
-});
-
-// ============================================
-// ETHIOPIAN LEAVE MANAGEMENT ROUTES
-// Proclamation 1156/2019 Compliant
-// ============================================
-Route::prefix('leaves')->name('leaves.')->group(function () {
-    Route::get('/', [App\Http\Controllers\EthiopianLeaveController::class, 'index'])->name('index');
-    Route::get('/create', [App\Http\Controllers\EthiopianLeaveController::class, 'create'])->name('create');
-    Route::post('/', [App\Http\Controllers\EthiopianLeaveController::class, 'store'])->name('store');
-    Route::post('/{id}/approve', [App\Http\Controllers\EthiopianLeaveController::class, 'approve'])->name('approve');
-    Route::post('/{id}/reject', [App\Http\Controllers\EthiopianLeaveController::class, 'reject'])->name('reject');
-    Route::post('/{id}/cancel', [App\Http\Controllers\EthiopianLeaveController::class, 'cancel'])->name('cancel');
-    Route::get('/balances', [App\Http\Controllers\EthiopianLeaveController::class, 'balances'])->name('balances');
-    Route::get('/calendar', [App\Http\Controllers\EthiopianLeaveController::class, 'calendar'])->name('calendar');
-});
-
-// Leave Settings Routes (Admin only)
-Route::prefix('leaves/settings')->name('leaves.settings.')->middleware('admin')->group(function () {
-    Route::get('/', [App\Http\Controllers\LeaveSettingsController::class, 'index'])->name('index');
-    Route::post('/type', [App\Http\Controllers\LeaveSettingsController::class, 'storeLeaveType'])->name('store-type');
-    Route::put('/type/{id}', [App\Http\Controllers\LeaveSettingsController::class, 'updateLeaveType'])->name('update-type');
-    Route::post('/type/{id}/toggle', [App\Http\Controllers\LeaveSettingsController::class, 'toggleLeaveType'])->name('toggle-type');
-    Route::delete('/type/{id}', [App\Http\Controllers\LeaveSettingsController::class, 'deleteLeaveType'])->name('delete-type');
-    Route::post('/holiday', [App\Http\Controllers\LeaveSettingsController::class, 'storeHoliday'])->name('store-holiday');
-    Route::delete('/holiday/{id}', [App\Http\Controllers\LeaveSettingsController::class, 'deleteHoliday'])->name('delete-holiday');
-    Route::post('/config', [App\Http\Controllers\LeaveSettingsController::class, 'updateSettings'])->name('update-config');
-});
-
-// Leave Import Routes
-Route::prefix('leaves/import')->name('leaves.import.')->group(function () {
-    Route::get('/', [App\Http\Controllers\LeaveImportController::class, 'index'])->name('index');
-    Route::post('/single', [App\Http\Controllers\LeaveImportController::class, 'storeSingle'])->name('store-single');
-    Route::post('/multiple', [App\Http\Controllers\LeaveImportController::class, 'storeMultiple'])->name('store-multiple');
-    Route::get('/template', [App\Http\Controllers\LeaveImportController::class, 'downloadTemplate'])->name('template');
-    Route::delete('/{id}', [App\Http\Controllers\LeaveImportController::class, 'destroy'])->name('destroy');
-});
-
-// Carry Forward Management Routes
-Route::prefix('leaves/carryforward')->name('leaves.carryforward.')->group(function () {
-    Route::get('/', [App\Http\Controllers\CarryForwardController::class, 'index'])->name('index');
-    Route::post('/recalculate', [App\Http\Controllers\CarryForwardController::class, 'recalculate'])->name('recalculate');
-    Route::post('/clear/{id}', [App\Http\Controllers\CarryForwardController::class, 'clearExpired'])->name('clear');
-    Route::post('/clear-expired', [App\Http\Controllers\CarryForwardController::class, 'clearAllExpired'])->name('clear-expired');
-});
-
-// Experience Calculation API
-Route::get('/applicants/experience/{id}', [App\Http\Controllers\ApplicantController::class, 'calculateExperience'])->name('applicants.experience');
-Route::get('/applicants/ranking/{positionId}', [App\Http\Controllers\ApplicantController::class, 'getRanking'])->name('applicants.ranking');
-Route::post('/applicants/ranks/update/{positionId}', [App\Http\Controllers\ApplicantController::class, 'updateRanks'])->name('applicants.ranks.update');
-
-// Leave Documents Route
-Route::get('/leaves/documents', function () {
-    return view('leaves.documents');
-})->name('leaves.documents');
-
-// Leave Breakdown
-Route::get('/leaves/breakdown', [App\Http\Controllers\EthiopianLeaveController::class, 'breakdown'])->name('leaves.breakdown');
-
-// Carry Forward Management
-Route::prefix('leaves/carryforward')->name('leaves.carryforward.')->group(function () {
-    Route::get('/', [App\Http\Controllers\CarryForwardController::class, 'index'])->name('index');
-    Route::post('/', [App\Http\Controllers\CarryForwardController::class, 'store'])->name('store');
-    Route::post('/{id}/approve', [App\Http\Controllers\CarryForwardController::class, 'approve'])->name('approve');
-    Route::post('/{id}/reject', [App\Http\Controllers\CarryForwardController::class, 'reject'])->name('reject');
-});
-
-// Clear carry forward (admin only)
-Route::post('/leaves/carryforward/clear/{applicantId}', [App\Http\Controllers\CarryForwardController::class, 'clear'])->name('leaves.carryforward.clear');
-
-// Clear specific carry forward
-Route::delete('/leaves/carryforward/{id}', [App\Http\Controllers\CarryForwardController::class, 'clear'])->name('leaves.carryforward.delete');
-Route::post('/leaves/carryforward/recalculate', [App\Http\Controllers\CarryForwardController::class, 'recalculate'])->name('leaves.carryforward.recalculate');
-Route::post('/leaves/carryforward/{id}/reject', [App\Http\Controllers\CarryForwardController::class, 'reject'])->name('leaves.carryforward.reject');
+// Standard HR Report
+Route::get('/reports/standard', [App\Http\Controllers\ReportController::class, 'standard'])->name('reports.standard');
+Route::get('/reports/standard/export', [App\Http\Controllers\ReportController::class, 'exportStandard'])->name('reports.standard.export');

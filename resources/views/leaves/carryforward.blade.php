@@ -200,7 +200,7 @@ $isHR = auth()->user() && in_array(auth()->user()->role, ['admin', 'editor']);
                                 </button>
                             </form>
                             @elseif($isApproved && $isAdmin)
-                            <form method="post" action="{{ route('leaves.carryforward.delete', $existingReq->id) }}" style="display:inline;">
+                            <form method="post" action="{{ route('leaves.carryforward.destroy', $existingReq->id) }}" style="display:inline;">
                                 @csrf @method('DELETE')
                                 <button class="btn btn-reject" onclick="return confirm('Delete this carry forward?')">🔄 Reset</button>
                             </form>
@@ -253,7 +253,7 @@ $isHR = auth()->user() && in_array(auth()->user()->role, ['admin', 'editor']);
                     <td style="font-size:11px;">{{ $ar->expiry_date ? \Carbon\Carbon::parse($ar->expiry_date)->format('M Y') : '-' }}</td>
                     @if($isAdmin)
                     <td style="text-align:center;">
-                        <form method="post" action="{{ route('leaves.carryforward.delete', $ar->id) }}" style="display:inline;">
+                        <form method="post" action="{{ route('leaves.carryforward.destroy', $ar->id) }}" style="display:inline;">
                             @csrf @method('DELETE')
                             <button class="btn btn-reject" style="padding:4px 8px; font-size:10px;" onclick="return confirm('Delete?')">🗑️</button>
                         </form>

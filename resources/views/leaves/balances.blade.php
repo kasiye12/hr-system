@@ -4,89 +4,94 @@
 
 @section('content')
 <style>
-    .bal-card { background:#fff; border-radius:16px; border:1px solid #dce5ee; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,0.04); }
-    .bal-header { background:linear-gradient(135deg, #16324f, #1b7f79); padding:20px 24px; color:#fff; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; }
-    .bal-header h2 { margin:0; font-size:18px; }
-    .bal-header p { margin:2px 0 0; opacity:0.8; font-size:12px; }
-    .bal-header a { color:#fff; text-decoration:none; padding:6px 14px; border-radius:6px; font-size:12px; font-weight:600; background:rgba(255,255,255,0.15); }
+    .page-header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:20px; }
+    .page-header h1 { font-size:20px; font-weight:800; color:#111827; margin:0; }
+    .page-header p { color:#6b7280; font-size:12px; margin:2px 0 0; }
     
-    .stats-row { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; padding:16px 24px; border-bottom:1px solid #dce5ee; }
-    .stat-box { text-align:center; padding:14px; background:#f8fbfd; border-radius:10px; }
-    .stat-box .val { font-size:22px; font-weight:700; color:#16324f; }
-    .stat-box .lbl { font-size:11px; color:#627386; text-transform:uppercase; margin-top:2px; }
+    .stats-row { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin-bottom:20px; }
+    .stat-card { background:#fff; border-radius:10px; padding:14px 16px; text-align:center; border:1px solid #e5e7eb; box-shadow:0 1px 2px rgba(0,0,0,0.04); }
+    .stat-card .val { font-size:22px; font-weight:800; color:#111827; }
+    .stat-card .lbl { font-size:10px; color:#6b7280; text-transform:uppercase; letter-spacing:0.5px; margin-top:2px; }
     
-    .filter-row { padding:12px 24px; border-bottom:1px solid #dce5ee; background:#fafbfc; display:flex; gap:10px; flex-wrap:wrap; align-items:end; }
-    .filter-row select, .filter-row input { padding:8px 12px; border:2px solid #dce5ee; border-radius:8px; font-size:13px; min-width:160px; }
-    .filter-row select:focus { outline:none; border-color:#1b7f79; }
-    .btn-sm { padding:8px 16px; border-radius:8px; font-weight:600; font-size:12px; cursor:pointer; border:none; text-decoration:none; display:inline-block; }
-    .btn-go { background:#1b7f79; color:#fff; }
-    .btn-reset { background:#e9eff5; color:#23384d; }
+    .card { background:#fff; border-radius:12px; border:1px solid #e5e7eb; box-shadow:0 1px 3px rgba(0,0,0,0.04); overflow:hidden; margin-bottom:16px; }
+    .card-header { padding:14px 20px; border-bottom:1px solid #f3f4f6; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; }
+    .card-header h3 { font-size:14px; font-weight:700; color:#111827; margin:0; }
     
-    .search-wrap { position:relative; min-width:220px; }
-    .search-wrap input { width:100%!important; padding:8px 35px 8px 12px!important; border:2px solid #dce5ee!important; border-radius:8px!important; font-size:13px!important; }
-    .search-wrap input:focus { border-color:#1b7f79!important; outline:none; }
-    .search-wrap .sicon { position:absolute; right:10px; top:50%; transform:translateY(-50%); color:#627386; pointer-events:none; }
-    .search-drop { position:absolute; top:100%; left:0; right:0; max-height:220px; overflow-y:auto; background:#fff; border:2px solid #1b7f79; border-top:none; border-radius:0 0 10px 10px; z-index:999; box-shadow:0 8px 20px rgba(0,0,0,0.15); display:none; }
+    .formula-bar { padding:10px 20px; background:#fffbeb; border-bottom:1px solid #fde68a; font-size:11px; color:#92400e; text-align:center; }
+    
+    .filter-bar { padding:12px 20px; border-bottom:1px solid #f3f4f6; background:#fafafa; display:flex; gap:8px; flex-wrap:wrap; align-items:end; }
+    .filter-bar select, .filter-bar input { padding:7px 10px; border:1px solid #d1d5db; border-radius:6px; font-size:12px; }
+    .filter-bar select:focus, .filter-bar input:focus { outline:none; border-color:#4f46e5; box-shadow:0 0 0 2px rgba(79,70,229,0.1); }
+    
+    .btn-xs { padding:6px 12px; border-radius:6px; font-weight:600; font-size:11px; cursor:pointer; border:none; text-decoration:none; display:inline-flex; align-items:center; gap:4px; }
+    .btn-primary { background:#4f46e5; color:#fff; }
+    .btn-outline { background:#fff; color:#374151; border:1px solid #d1d5db; }
+    
+    .search-box { position:relative; min-width:200px; }
+    .search-box input { width:100%!important; padding:7px 30px 7px 10px!important; border:1px solid #d1d5db!important; border-radius:6px!important; font-size:12px!important; }
+    .search-box input:focus { border-color:#4f46e5!important; outline:none; }
+    .search-box .icon { position:absolute; right:8px; top:50%; transform:translateY(-50%); color:#9ca3af; font-size:13px; }
+    .search-drop { display:none; position:absolute; top:100%; left:0; right:0; max-height:200px; overflow-y:auto; background:#fff; border:1px solid #4f46e5; border-top:none; border-radius:0 0 8px 8px; z-index:99; box-shadow:0 4px 12px rgba(0,0,0,0.1); }
     .search-drop.open { display:block; }
-    .search-drop .opt { padding:9px 14px; cursor:pointer; border-bottom:1px solid #f0f4f8; font-size:13px; }
-    .search-drop .opt:hover { background:#e8f3f2; }
-    .search-drop .opt.clear { color:#627386; font-style:italic; font-weight:600; background:#f8f9fa; }
+    .search-drop div { padding:8px 12px; cursor:pointer; border-bottom:1px solid #f3f4f6; font-size:12px; }
+    .search-drop div:hover { background:#eef2ff; }
+    .search-drop div.clear { color:#9ca3af; font-style:italic; font-weight:600; }
     
-    table { width:100%; border-collapse:collapse; font-size:13px; }
-    table th { background:#f0f4f8; padding:10px 10px; font-size:10px; text-transform:uppercase; color:#627386; text-align:left; border-bottom:2px solid #dce5ee; white-space:nowrap; }
-    table td { padding:10px 10px; border-bottom:1px solid #f0f4f8; vertical-align:middle; }
-    table tbody tr:hover td { background:#f8fbfd; }
-    .num { text-align:center; font-weight:600; }
-    .badge-type { display:inline-block; padding:3px 8px; border-radius:12px; font-size:10px; font-weight:700; background:#e8f3f2; color:#0c625e; }
-    .avail-green { color:#18794e; font-weight:700; font-size:14px; }
-    .avail-red { color:#a61b1b; font-weight:700; font-size:14px; }
-    .used-detail { font-size:10px; color:#627386; margin-top:2px; line-height:1.4; }
-    .eth-date { font-size:10px; color:#627386; }
-    .info-bar { padding:10px 24px; font-size:12px; color:#627386; background:#fafbfc; border-top:1px solid #dce5ee; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; }
-    .formula-note { padding:10px 24px; background:#fffdf5; border-top:1px solid #f1d3a3; font-size:11px; color:#a45100; text-align:center; }
+    table { width:100%; border-collapse:collapse; font-size:12px; }
+    table th { background:#f9fafb; padding:9px 10px; font-size:9px; text-transform:uppercase; letter-spacing:0.5px; color:#6b7280; font-weight:700; border-bottom:1px solid #e5e7eb; white-space:nowrap; }
+    table td { padding:9px 10px; border-bottom:1px solid #f3f4f6; vertical-align:middle; }
+    table tbody tr:hover td { background:#f9fafb; }
+    .num { text-align:center; font-weight:600; font-variant-numeric:tabular-nums; }
+    .badge-type { display:inline-block; padding:2px 8px; border-radius:100px; font-size:10px; font-weight:600; background:#eef2ff; color:#4f46e5; }
+    .text-green { color:#059669; font-weight:700; }
+    .text-red { color:#dc2626; font-weight:700; }
+    .text-amber { color:#d97706; }
+    .text-gray { color:#6b7280; font-size:10px; }
+    .used-info { font-size:9px; color:#6b7280; margin-top:1px; line-height:1.3; }
     
-    @media (max-width:768px) { .stats-row { grid-template-columns:1fr 1fr 1fr; } .filter-row { flex-direction:column; } }
+    .info-bar { padding:10px 20px; font-size:11px; color:#6b7280; background:#fafafa; border-top:1px solid #e5e7eb; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+    
+    @media (max-width:768px) { .stats-row { grid-template-columns:repeat(3,1fr); } }
+    @media (max-width:480px) { .stats-row { grid-template-columns:1fr 1fr; } }
 </style>
 
-<div class="bal-card">
-    <div class="bal-header">
-        <div>
-            <h2>📊 Leave Balances</h2>
-            <p>🇪🇹 Ethiopian Pro-rata Daily Accrual · Proclamation 1156/2011</p>
-        </div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <a href="{{ route('leaves.breakdown') }}">📊 Breakdown</a>
-            <a href="{{ route('leaves.carryforward.index') }}">📦 Carry Fwd</a>
-            <a href="{{ route('leaves.index') }}">← Back</a>
-        </div>
+<div class="page-header">
+    <div>
+        <h1>📊 Leave Balances</h1>
+        <p>🇪🇹 Ethiopian Pro-rata Daily Accrual · Proclamation 1156/2011</p>
     </div>
-
-    <!-- Stats -->
-    <div class="stats-row">
-        <div class="stat-box"><div class="val">{{ $balances->total() }}</div><div class="lbl">Total Records</div></div>
-        <div class="stat-box"><div class="val" style="color:#18794e;">{{ $balances->where('available_days', '>', 0)->count() }}</div><div class="lbl">✅ With Balance</div></div>
-        <div class="stat-box"><div class="val" style="color:#a45100;">{{ $balances->where('available_days', '<=', 0)->count() }}</div><div class="lbl">⚠️ Exhausted</div></div>
-        <div class="stat-box"><div class="val" style="color:#397a9f;">{{ number_format($balances->sum('available_days'), 1) }}</div><div class="lbl">📊 Available</div></div>
-        <div class="stat-box"><div class="val" style="color:#d38b2a;">{{ number_format($balances->sum('carry_forward_days'), 1) }}</div><div class="lbl">📦 Carry Fwd</div></div>
+    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        <a href="{{ route('leaves.breakdown') }}" class="btn-xs btn-outline">📊 Breakdown</a>
+        <a href="{{ route('leaves.carryforward.index') }}" class="btn-xs btn-outline">📦 Carry Fwd</a>
+        <a href="{{ route('leaves.index') }}" class="btn-xs btn-outline">← Back</a>
     </div>
+</div>
 
-    <!-- Formula Note -->
-    <div class="formula-note">
-        📐 <strong>Available = Accrued − Used − Pending − Expired + Carry Forward</strong> &nbsp;|&nbsp;
-        ⏰ Unused leave expires <strong>2 years</strong> after leave year ends
+<!-- Stats -->
+<div class="stats-row">
+    <div class="stat-card"><div class="val">{{ $balances->total() }}</div><div class="lbl">Total Records</div></div>
+    <div class="stat-card"><div class="val" style="color:#059669;">{{ $balances->where('available_days', '>', 0)->count() }}</div><div class="lbl">✅ With Balance</div></div>
+    <div class="stat-card"><div class="val" style="color:#d97706;">{{ $balances->where('available_days', '<=', 0)->count() }}</div><div class="lbl">⚠️ Exhausted</div></div>
+    <div class="stat-card"><div class="val" style="color:#4f46e5;">{{ number_format($balances->sum('available_days'), 1) }}</div><div class="lbl">📊 Available</div></div>
+    <div class="stat-card"><div class="val" style="color:#d97706;">{{ number_format($balances->sum('carry_forward_days'), 1) }}</div><div class="lbl">📦 Carry Fwd</div></div>
+</div>
+
+<div class="card">
+    <div class="formula-bar">
+        📐 <strong>Available = Accrued − Used − Pending − Expired + Carry Forward</strong> &nbsp;|&nbsp; ⏰ Unused leave expires <strong>2 years</strong> after leave year ends
     </div>
 
     <!-- Filters -->
-    <form method="GET" action="{{ route('leaves.balances') }}" id="filterForm" class="filter-row">
-        <div class="search-wrap" id="searchWrap">
+    <form method="GET" action="{{ route('leaves.balances') }}" id="filterForm" class="filter-bar">
+        <div class="search-box" id="searchWrap">
             <input type="text" id="empSearch" placeholder="🔍 Search employee..." autocomplete="off"
                    value="{{ request('employee_name') }}"
                    onfocus="document.getElementById('empDrop').classList.add('open')" onkeyup="filterDrop()">
-            <span class="sicon">🔍</span>
+            <span class="icon">🔍</span>
             <div class="search-drop" id="empDrop">
-                <div class="opt clear" onclick="selectEmp('', '')">✖ Show All</div>
+                <div class="clear" onclick="selectEmp('', '')">✖ Show All</div>
                 @foreach($applicants as $app)
-                    <div class="opt emp-opt" data-id="{{ $app->id }}" data-name="{{ $app->full_name }}"
+                    <div class="emp-opt" data-id="{{ $app->id }}" data-name="{{ $app->full_name }}"
                          onclick="selectEmp('{{ $app->id }}', '{{ $app->full_name }}')">
                         <strong>{{ $app->full_name }}</strong>
                     </div>
@@ -108,9 +113,9 @@
             <option value="exhausted" {{ request('availability')=='exhausted'?'selected':'' }}>⚠️ Exhausted</option>
         </select>
 
-        <button type="submit" class="btn-sm btn-go">🔍 Filter</button>
+        <button type="submit" class="btn-xs btn-primary">🔍 Filter</button>
         @if(request('applicant_id') || request('leave_type_id') || request('availability'))
-            <a href="{{ route('leaves.balances') }}" class="btn-sm btn-reset">✖ Clear</a>
+            <a href="{{ route('leaves.balances') }}" class="btn-xs btn-outline">✖ Clear</a>
         @endif
     </form>
 
@@ -154,14 +159,12 @@
                         ? $appLeaves->where('leave_type_id', $b->leave_type_id)
                         : $appLeaves->where('leave_type_id', $b->leave_type_id);
                     
-                    // Calculate expired for annual leave
                     $expiredDays = 0;
                     if ($b->leaveType->code === 'annual') {
                         $expiredData = $expiryService->calculateExpiredLeave($b->applicant);
                         $expiredDays = $expiredData['total'];
                     }
                     
-                    // Ethiopian date
                     $ethHireDate = $b->applicant->registration_date 
                         ? $ethCal->gregorianToEthiopian($b->applicant->registration_date) 
                         : null;
@@ -170,9 +173,9 @@
                     <td>{{ $balances->firstItem() + $index }}</td>
                     <td>
                         <strong>{{ $b->applicant->full_name ?? 'N/A' }}</strong>
-                        <div style="font-size:10px; color:#627386;">📅 GC: {{ $b->applicant->registration_date ?? 'N/A' }}</div>
+                        <div class="text-gray">📅 GC: {{ $b->applicant->registration_date ?? 'N/A' }}</div>
                         @if($ethHireDate)
-                        <div class="eth-date">🇪🇹 {{ $ethHireDate['day'] }} {{ $ethHireDate['month_name'] }} {{ $ethHireDate['year'] }}</div>
+                        <div class="text-gray">🇪🇹 {{ $ethHireDate['day'] }} {{ $ethHireDate['month_name'] }} {{ $ethHireDate['year'] }}</div>
                         @endif
                     </td>
                     <td style="font-size:11px;">{{ $b->applicant->position->name ?? 'N/A' }}</td>
@@ -181,11 +184,11 @@
                     <td class="num">
                         <strong>{{ number_format($b->used_current_year, 1) }}</strong>
                         @if($b->used_current_year > 0 && $typeLeaves->count() > 0)
-                            <div class="used-detail">
+                            <div class="used-info">
                                 @foreach($typeLeaves->take(3) as $leave)
                                     @php $ethStart = $ethCal->gregorianToEthiopian($leave->start_date); @endphp
                                     {{ $leave->start_date->format('M d') }}→{{ $leave->end_date->format('M d') }} 
-                                    <span style="font-size:9px;">🇪🇹{{ $ethStart['day'] }}/{{ substr($ethStart['month_name'],0,3) }}</span>
+                                    🇪🇹{{ $ethStart['day'] }}/{{ substr($ethStart['month_name'],0,3) }}
                                     ({{ $leave->total_days }}d)<br>
                                 @endforeach
                                 @if($typeLeaves->count() > 3)
@@ -194,28 +197,21 @@
                             </div>
                         @endif
                     </td>
-                    <td class="num" style="color:#a45100;">{{ number_format($b->pending_days, 1) }}</td>
-                    <td class="num" style="color:#666;">
+                    <td class="num text-amber">{{ number_format($b->pending_days, 1) }}</td>
+                    <td class="num text-gray">
                         @if($b->leaveType->code === 'annual')
                             {{ number_format($expiredDays, 1) }}
-                            @if($expiredDays > 0)
-                                <span style="font-size:9px; color:#a61b1b;">⏰</span>
-                            @endif
-                        @else
-                            -
-                        @endif
+                        @else - @endif
                     </td>
-                    <td class="num" style="color:#d38b2a;">{{ number_format($b->carry_forward_days ?? 0, 1) }}</td>
+                    <td class="num" style="color:#d97706;">{{ number_format($b->carry_forward_days ?? 0, 1) }}</td>
                     <td class="num">
-                        <span class="{{ $b->available_days > 0 ? 'avail-green' : 'avail-red' }}">
+                        <span class="{{ $b->available_days > 0 ? 'text-green' : 'text-red' }}" style="font-size:14px;">
                             {{ number_format($b->available_days, 1) }}
                         </span>
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="10" style="text-align:center;padding:50px;color:#627386;">
-                    <div style="font-size:40px;">📊</div><div style="font-weight:600;">No leave balances</div>
-                </td></tr>
+                <tr><td colspan="10" style="text-align:center;padding:40px;color:#6b7280;">📊 No leave balances</td></tr>
                 @endforelse
             </tbody>
         </table>
@@ -223,21 +219,21 @@
 
     <div class="info-bar">
         <span>Showing <strong>{{ $balances->firstItem() ?? 0 }}</strong>-<strong>{{ $balances->lastItem() ?? 0 }}</strong> of <strong>{{ $balances->total() }}</strong></span>
-        <span>Total Available: <strong>{{ number_format($balances->sum('available_days'), 1) }} days</strong></span>
+        <span>Total Available: <strong style="color:#059669;">{{ number_format($balances->sum('available_days'), 1) }} days</strong></span>
     </div>
-
-    @if($balances->hasPages())
-    <div style="padding:14px 24px; border-top:1px solid #dce5ee; display:flex; justify-content:center;">
-        {{ $balances->appends(request()->query())->links('vendor.pagination.bootstrap-5') }}
-    </div>
-    @endif
 </div>
+
+@if($balances->hasPages())
+<div style="display:flex; justify-content:center; padding:12px 20px;">
+    {{ $balances->appends(request()->query())->links('vendor.pagination.bootstrap-5') }}
+</div>
+@endif
 
 <script>
 function filterDrop() {
-    var term = document.getElementById('empSearch').value.toLowerCase().trim();
+    var t = document.getElementById('empSearch').value.toLowerCase().trim();
     document.querySelectorAll('.emp-opt').forEach(function(o) {
-        o.style.display = (term === '' || o.getAttribute('data-name').toLowerCase().includes(term)) ? 'block' : 'none';
+        o.style.display = (t === '' || o.getAttribute('data-name').toLowerCase().includes(t)) ? 'block' : 'none';
     });
 }
 function selectEmp(id, name) {

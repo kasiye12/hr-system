@@ -1731,19 +1731,26 @@ public function deletePosition($id)
         $spreadsheet = new Spreadsheet();
         $spreadsheet->getProperties()
             ->setCreator('TNT HR Reporting')
-            ->setLastModifiedBy('TNT HR Reporting')
-            ->setTitle('Applicant Profile Report')
-            ->setSubject('Applicant Profile')
-            ->setDescription('Professional Applicant Profile Report');
+            ->setTitle('Applicant Profile - ' . $applicant->full_name);
         
         $sheet = $spreadsheet->getActiveSheet();
-        $sheet->setTitle('Applicant Profile');
+        $sheet->setTitle('Candidate Profile');
+        
+        // Page setup - A4 Landscape
+        $sheet->getPageSetup()->setOrientation(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::ORIENTATION_LANDSCAPE);
+        $sheet->getPageSetup()->setPaperSize(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::PAPERSIZE_A4);
+        $sheet->getPageMargins()->setTop(0.4);
+        $sheet->getPageMargins()->setBottom(0.4);
+        $sheet->getPageMargins()->setLeft(0.3);
+        $sheet->getPageMargins()->setRight(0.3);
         
         $row = 1;
         
-        // Header - Position
-        $sheet->mergeCells('A1:M1');
-        $sheet->setCellValue('A1', 'POSITION: ' . strtoupper($applicant->position->name ?? 'N/A'));
+        // ============================================
+        // HEADER SECTION
+        // ============================================
+        $sheet->mergeCells('A1:L1');
+        $sheet->setCellValue('A1', 'TNT CONSTRUCTION - APPLICANT PROFILE');
         $sheet->getStyle('A1')->applyFromArray([
             'font' => ['bold' => true, 'size' => 14, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '16324F']],
@@ -1752,202 +1759,352 @@ public function deletePosition($id)
         $sheet->getRowDimension($row)->setRowHeight(30);
         $row++;
         
-        // Grade, Salary, Criteria, Requirement Type
-        $sheet->setCellValue('A' . $row, 'Grade:');
-        $sheet->setCellValue('B' . $row, $applicant->position->grade ?? '');
-        $sheet->setCellValue('D' . $row, 'Salary:');
-        $sheet->setCellValue('E' . $row, $applicant->position->salary ?? '');
-        $sheet->setCellValue('G' . $row, 'Requirement Type:');
-        $sheet->setCellValue('H' . $row, $applicant->position->requirement_type ?? '');
-        $sheet->setCellValue('J' . $row, 'Criteria:');
-        $sheet->setCellValue('K' . $row, $applicant->position->criteria ?? '');
-        $sheet->getStyle('A' . $row . ':M' . $row)->applyFromArray([
-            'font' => ['size' => 11],
-            'alignment' => ['vertical' => Alignment::VERTICAL_CENTER],
-        ]);
-        $row += 2;
-        
-        // Personal Information
-        $sheet->setCellValue('A' . $row, 'No:');
-        $sheet->setCellValue('B' . $row, '1');
-        $sheet->setCellValue('C' . $row, 'Applicant Name:');
-        $sheet->setCellValue('D' . $row, $applicant->full_name);
-        $sheet->setCellValue('E' . $row, 'Background of Education:');
-        $sheet->setCellValue('F' . $row, $applicant->academic_level . ' ' . ($applicant->academic_field ?? ''));
-        $sheet->setCellValue('G' . $row, 'Level:');
-        $sheet->setCellValue('H' . $row, $applicant->academic_level);
-        $sheet->setCellValue('I' . $row, 'Institution:');
-        $sheet->setCellValue('J' . $row, $applicant->academic_detail ?? '');
-        $sheet->setCellValue('K' . $row, 'Phone:');
-        $sheet->setCellValue('L' . $row, $applicant->phone_primary ?? '');
-        $sheet->getStyle('A' . $row . ':M' . $row)->applyFromArray([
-            'font' => ['size' => 11],
-            'alignment' => ['vertical' => Alignment::VERTICAL_CENTER],
-            'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
-        ]);
-        $sheet->getStyle('A' . $row . ':C' . $row . ',' . 'E' . $row . ',' . 'G' . $row . ',' . 'I' . $row . ',' . 'K' . $row)->applyFromArray([
-            'font' => ['bold' => true],
-            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'EFF4F8']],
-        ]);
-        $row++;
-        
-        // Total Experience
-        $sheet->setCellValue('A' . $row, 'Total Experience:');
-        $sheet->setCellValue('B' . $row, $applicant->experience_years . ' years ' . $applicant->experience_months . ' months');
+        // Position Info Row
+        $sheet->mergeCells('A1:L1');
+        $sheet->setCellValue('A' . $row, 'Position: ' . strtoupper($applicant->position->name ?? 'N/A'));
         $sheet->getStyle('A' . $row)->applyFromArray([
-            'font' => ['bold' => true],
-            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'EFF4F8']],
+            'font' => ['bold' => true, 'size' => 11, 'color' => ['rgb' => '1B7F79']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'E8F3F2']],
         ]);
         $row++;
         
-        // Work Experience Table Header
-        $headers = ['Company', 'Position', 'Start Date', 'End Date', 'Difference of Date', 'Total Experience', 'Specific Built project', 'Remark'];
-        $col = 'A';
-        foreach ($headers as $header) {
-            $sheet->setCellValue($col . $row, $header);
-            $sheet->getStyle($col . $row)->applyFromArray([
-                'font' => ['bold' => true, 'size' => 10],
-                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'DCE5EE']],
-                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
-                'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
-            ]);
-            $sheet->getColumnDimension($col)->setWidth(18);
-            $col++;
-        }
-        $row++;
-        
-        // Work Experience Data
-        $workExperiences = $applicant->workExperiences->sortBy('start_date');
-        $totalSpecificDays = 0;
-        
-        foreach ($workExperiences as $exp) {
-            $col = 'A';
-            $sheet->setCellValue($col++ . $row, $exp->company);
-            $sheet->setCellValue($col++ . $row, $exp->job_title);
-            $sheet->setCellValue($col++ . $row, $exp->start_date ? Carbon::parse($exp->start_date)->format('m/d/Y') : '');
-            $sheet->setCellValue($col++ . $row, $exp->end_date ? Carbon::parse($exp->end_date)->format('m/d/Y') : '');
-            
-            // Difference of Date
-            $diffDays = $exp->start_date && $exp->end_date ? $exp->start_date->diffInDays($exp->end_date) : 0;
-            $years = floor($diffDays / 365);
-            $months = floor(($diffDays % 365) / 30);
-            $days = ($diffDays % 365) % 30;
-            $diffText = ($years ? $years . ' years ' : '') . ($months ? $months . ' months ' : '') . ($days ? $days . ' days' : '');
-            $sheet->setCellValue($col++ . $row, $diffText ?: '');
-            
-            // Total Experience (cumulative)
-            if ($exp->specific_to_position) {
-                $totalSpecificDays += $diffDays;
-            }
-            $totalYears = floor($totalSpecificDays / 365);
-            $totalMonths = floor(($totalSpecificDays % 365) / 30);
-            $totalDays = ($totalSpecificDays % 365) % 30;
-            $totalText = ($totalYears ? $totalYears . ' years ' : '') . ($totalMonths ? $totalMonths . ' months ' : '') . ($totalDays ? $totalDays . ' days' : '');
-            $sheet->setCellValue($col++ . $row, $totalText ?: '');
-            
-            // Specific Built project            $sheet->setCellValue($col++ . $row, $exp->specific_position_title ?? '');
-            
-            // Remark
-            $sheet->setCellValue($col++ . $row, $exp->notes ?? '');
-            
-            // Style the row
-            $sheet->getStyle('A' . $row . ':H' . $row)->applyFromArray([
-                'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
-                'alignment' => ['vertical' => Alignment::VERTICAL_CENTER],
-            ]);
-            
-            // Highlight specific experience rows
-            if ($exp->specific_to_position) {
-                $sheet->getStyle('A' . $row . ':H' . $row)->applyFromArray([
-                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FFF3CD']],
-                ]);
-            }
-            
-            $row++;
-        }
-        
-        // Selection Committee Section
-        $row += 2;
-        $sheet->mergeCells('A1:H1');
-        $sheet->setCellValue('A' . $row, 'SELECTION COMMITTEE APPROVAL');
-        $sheet->getStyle('A' . $row)->applyFromArray([
-            'font' => ['bold' => true, 'size' => 12],
-            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '16324F']],
-            'font' => ['color' => ['rgb' => 'FFFFFF']],
-            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
-        ]);
-        $row += 2;
-        
-        // Scores
-        $scores = [
-            ['Document Screening', $applicant->selection->screening_score ?? 0],
-            ['Written Exam', $applicant->selection->written_score ?? 0],
-            ['Interview', $applicant->selection->interview_score ?? 0],
-            ['Practical Test', $applicant->selection->practical_score ?? 0],
-            ['Final Score', $applicant->selection->final_score ?? 0],
-            ['Rank', $applicant->selection->rank_no ?? ''],
-            ['Decision', $applicant->selection->decision ?? 'Pending'],
+        // Grade, Salary, Criteria, Requirement, Project
+        $infoRows = [
+            ['Grade:', $applicant->position->grade ?? '___________'],
+            ['Salary:', $applicant->position->salary ?? '___________'],
+            ['Criteria:', $applicant->position->criteria ?? '___________'],
+            ['Requirement Type:', $applicant->position->requirement_type ?? 'Permanent or Contract'],
+            ['Project:', $applicant->position->organization->name ?? '___________'],
         ];
         
-        $col = 'A';
-        foreach ($scores as $score) {
-            $sheet->setCellValue($col . $row, $score[0]);
-            $sheet->setCellValue($col . ($row + 1), $score[1]);
-            $sheet->getStyle($col . $row)->applyFromArray([
-                'font' => ['bold' => true],
-                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'EFF4F8']],
-                'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
+        foreach ($infoRows as $info) {
+            $sheet->setCellValue('A' . $row, $info[0]);
+            $sheet->getStyle('A' . $row)->applyFromArray([
+                'font' => ['bold' => true, 'size' => 10],
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'F0F4F8']],
             ]);
-            $sheet->getStyle($col . ($row + 1))->applyFromArray([
+            $sheet->mergeCells('B' . $row . ':L' . $row);
+            $sheet->setCellValue('B' . $row, $info[1]);
+            $sheet->getStyle('B' . $row)->applyFromArray(['font' => ['size' => 10]]);
+            $row++;
+        }
+        $row++;
+        
+        // ============================================
+        // TABLE HEADER
+        // ============================================
+        $headers = [
+            'No.', 'Applicant Name', 
+            'Background of Education', 
+            'Experience', '', '', '', '', '',
+            'Specific Built Project', 'Remark'
+        ];
+        
+        $subHeaders = [
+            '', '', '',
+            'Company', 'Position', 'Start Date', 'End Date', 'Duration', 'Total Experience',
+            '', ''
+        ];
+        
+        // Main headers
+        $sheet->setCellValue('A' . $row, 'No.');
+        $sheet->setCellValue('B' . $row, 'Applicant Name');
+        $sheet->mergeCells('C' . $row . ':D' . $row);
+        $sheet->setCellValue('C' . $row, 'Background of Education');
+        $sheet->mergeCells('E' . $row . ':J' . $row);
+        $sheet->setCellValue('E' . $row, 'Experience');
+        $sheet->setCellValue('K' . $row, 'Specific Built Project');
+        $sheet->setCellValue('L' . $row, 'Remark');
+        
+        // Sub headers
+        $row++;
+        $sheet->setCellValue('E' . $row, 'Company');
+        $sheet->setCellValue('F' . $row, 'Position');
+        $sheet->setCellValue('G' . $row, 'Start Date');
+        $sheet->setCellValue('H' . $row, 'End Date');
+        $sheet->setCellValue('I' . $row, 'Duration');
+        $sheet->setCellValue('J' . $row, 'Total Experience');
+        
+        // Style all headers
+        $sheet->getStyle('A' . ($row-1) . ':L' . $row)->applyFromArray([
+            'font' => ['bold' => true, 'size' => 8, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '16324F']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER, 'wrapText' => true],
+            'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
+        ]);
+        
+        // Merge header cells properly
+        $sheet->mergeCells('A' . ($row-1) . ':A' . $row);
+        $sheet->mergeCells('B' . ($row-1) . ':B' . $row);
+        $sheet->mergeCells('K' . ($row-1) . ':K' . $row);
+        $sheet->mergeCells('L' . ($row-1) . ':L' . $row);
+        
+        // Column widths
+        $sheet->getColumnDimension('A')->setWidth(5);
+        $sheet->getColumnDimension('B')->setWidth(22);
+        $sheet->getColumnDimension('C')->setWidth(18);
+        $sheet->getColumnDimension('D')->setWidth(18);
+        $sheet->getColumnDimension('E')->setWidth(16);
+        $sheet->getColumnDimension('F')->setWidth(14);
+        $sheet->getColumnDimension('G')->setWidth(12);
+        $sheet->getColumnDimension('H')->setWidth(12);
+        $sheet->getColumnDimension('I')->setWidth(16);
+        $sheet->getColumnDimension('J')->setWidth(16);
+        $sheet->getColumnDimension('K')->setWidth(20);
+        $sheet->getColumnDimension('L')->setWidth(18);
+        
+        $row++;
+        $dataStartRow = $row;
+        
+        // ============================================
+        // APPLICANT DATA
+        // ============================================
+        $sheet->setCellValue('A' . $row, '1');
+        $sheet->setCellValue('B' . $row, $applicant->full_name . "\n" . ($applicant->phone_primary ?? '') . "\n" . ($applicant->phone_secondary ?? ''));
+        $sheet->getStyle('B' . $row)->getAlignment()->setWrapText(true);
+        
+        // Education background
+        $education = ($applicant->academic_level ?? '');
+        if ($applicant->academic_field) $education .= "\n" . $applicant->academic_field;
+        if ($applicant->academic_detail) $education .= "\n" . $applicant->academic_detail;
+        if ($applicant->graduation_date) $education .= "\nGraduated: " . $applicant->graduation_date;
+        $sheet->setCellValue('C' . $row, $education);
+        $sheet->mergeCells('C' . $row . ':D' . $row);
+        $sheet->getStyle('C' . $row)->getAlignment()->setWrapText(true);
+        
+        // Work Experience
+        $workExperiences = $applicant->workExperiences->sortBy('start_date');
+        $workRow = $row;
+        $totalSpecificDays = 0;
+        $totalAllDays = 0;
+        
+        if ($workExperiences->count() > 0) {
+            foreach ($workExperiences as $i => $exp) {
+                if ($i > 0) {
+                    $workRow++;
+                    // Copy applicant info for merged look
+                    $sheet->setCellValue('A' . $workRow, '');
+                    $sheet->setCellValue('B' . $workRow, '');
+                    $sheet->setCellValue('C' . $workRow, '');
+                    $sheet->mergeCells('C' . $workRow . ':D' . $workRow);
+                }
+                
+                $sheet->setCellValue('E' . $workRow, $exp->company);
+                $sheet->setCellValue('F' . $workRow, $exp->job_title);
+                $sheet->setCellValue('G' . $workRow, $exp->start_date ? \Carbon\Carbon::parse($exp->start_date)->format('m/d/Y') : '');
+                $sheet->setCellValue('H' . $workRow, $exp->end_date ? \Carbon\Carbon::parse($exp->end_date)->format('m/d/Y') : '');
+                
+                // Duration
+                $startDate = $exp->start_date ? \Carbon\Carbon::parse($exp->start_date) : null;
+                $endDate = $exp->end_date ? \Carbon\Carbon::parse($exp->end_date) : now();
+                if ($startDate) {
+                    $diff = $startDate->diff($endDate);
+                    $duration = ($diff->y > 0 ? $diff->y . 'years' : '') . 
+                                ($diff->m > 0 ? $diff->m . 'months' : '') . 
+                                ($diff->d > 0 ? $diff->d . 'days' : '');
+                    $diffDays = $startDate->diffInDays($endDate);
+                    $totalAllDays += $diffDays;
+                    if ($exp->specific_to_position) $totalSpecificDays += $diffDays;
+                } else {
+                    $duration = '';
+                }
+                $sheet->setCellValue('I' . $workRow, $duration);
+                
+                // Total Experience (cumulative for specific)
+                if ($exp->specific_to_position) {
+                    $specY = floor($totalSpecificDays / 365);
+                    $specM = floor(($totalSpecificDays % 365) / 30);
+                    $specD = ($totalSpecificDays % 365) % 30;
+                    $totalExp = ($specY > 0 ? $specY . 'years' : '') . 
+                                ($specM > 0 ? $specM . 'months' : '') . 
+                                ($specD > 0 ? $specD . 'days' : '');
+                    $sheet->setCellValue('J' . $workRow, $totalExp);
+                } else {
+                    $sheet->setCellValue('J' . $workRow, '');
+                }
+                
+                // Specific built project
+                $sheet->setCellValue('K' . $workRow, $exp->specific_position_title ?? ($exp->specific_to_position ? $exp->company : ''));
+                
+                // Remark
+                $sheet->setCellValue('L' . $workRow, $exp->notes ?? '');
+            }
+            
+            // Merge applicant info cells vertically
+            if ($workExperiences->count() > 1) {
+                $sheet->mergeCells('A' . $row . ':A' . $workRow);
+                $sheet->mergeCells('B' . $row . ':B' . $workRow);
+                $sheet->mergeCells('C' . $row . ':D' . $workRow);
+            }
+            
+            $row = $workRow;
+        } else {
+            $sheet->mergeCells('E' . $row . ':J' . $row);
+            $sheet->setCellValue('E' . $row, 'No work experience records');
+            $sheet->getStyle('E' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        }
+        
+        // Style all data cells
+        $sheet->getStyle('A' . $dataStartRow . ':L' . $row)->applyFromArray([
+            'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
+            'alignment' => ['vertical' => Alignment::VERTICAL_TOP, 'wrapText' => true],
+            'font' => ['size' => 9],
+        ]);
+        
+        // Center specific columns
+        $sheet->getStyle('A' . $dataStartRow . ':A' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('G' . $dataStartRow . ':J' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        
+        // Total experience row
+        $row += 2;
+        $totalY = floor($totalAllDays / 365);
+        $totalM = floor(($totalAllDays % 365) / 30);
+        $totalD = ($totalAllDays % 365) % 30;
+        $specY2 = floor($totalSpecificDays / 365);
+        $specM2 = floor(($totalSpecificDays % 365) / 30);
+        $specD2 = ($totalSpecificDays % 365) % 30;
+        
+        $sheet->mergeCells('A' . $row . ':D' . $row);
+        $sheet->setCellValue('A' . $row, 'TOTAL EXPERIENCE SUMMARY:');
+        $sheet->getStyle('A' . $row)->applyFromArray([
+            'font' => ['bold' => true, 'size' => 10],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'EFF4F8']],
+        ]);
+        $sheet->mergeCells('E' . $row . ':J' . $row);
+        $sheet->setCellValue('E' . $row, 
+            'Total: ' . $totalY . ' years, ' . $totalM . ' months, ' . $totalD . ' days  |  ' .
+            'Specific: ' . $specY2 . ' years, ' . $specM2 . ' months, ' . $specD2 . ' days'
+        );
+        $sheet->getStyle('A' . $row . ':L' . $row)->applyFromArray([
+            'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
+            'font' => ['size' => 10],
+        ]);
+        
+        // ============================================
+        // SELECTION COMMITTEE SECTION
+        // ============================================
+        $row += 2;
+        $sheet->mergeCells('A' . $row . ':L' . $row);
+        $sheet->setCellValue('A' . $row, 'SELECTION COMMITTEE APPROVAL');
+        $sheet->getStyle('A' . $row)->applyFromArray([
+            'font' => ['bold' => true, 'size' => 11, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '16324F']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+        ]);
+        $row++;
+        
+        $scores = [
+            ['A', 'C', 'Document Screening', $applicant->selection->screening_score ?? 0],
+            ['D', 'F', 'Written Exam', $applicant->selection->written_score ?? 0],
+            ['G', 'I', 'Interview', $applicant->selection->interview_score ?? 0],
+            ['J', 'L', 'Practical Test', $applicant->selection->practical_score ?? 0],
+        ];
+        
+        foreach ($scores as $score) {
+            $sheet->mergeCells($score[0] . $row . ':' . $score[1] . $row);
+            $sheet->setCellValue($score[0] . $row, $score[2]);
+            $sheet->getStyle($score[0] . $row)->applyFromArray([
+                'font' => ['bold' => true, 'size' => 9],
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'EFF4F8']],
                 'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
                 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
             ]);
-            if (is_numeric($score[1])) {
-                $sheet->getStyle($col . ($row + 1))->getNumberFormat()->setFormatCode('0.00');
-            }
-            $sheet->getColumnDimension($col)->setWidth(18);
-            $col++;
         }
-        $row += 3;
+        $row++;
         
-        // Approval Signatures
-        $approvals = ['Prepared By', 'Reviewed By', 'Approved By'];
-        $col = 'A';
-        foreach ($approvals as $approval) {
-            $sheet->setCellValue($col . $row, $approval);
-            $sheet->setCellValue($col . ($row + 1), '');
-            $sheet->setCellValue($col . ($row + 2), 'Signature');
-            $sheet->setCellValue($col . ($row + 3), '');
-            $sheet->setCellValue($col . ($row + 4), 'Date');
-            $sheet->setCellValue($col . ($row + 5), '');
-            $sheet->getStyle($col . $row . ':' . $col . ($row + 5))->applyFromArray([
+        foreach ($scores as $score) {
+            $sheet->mergeCells($score[0] . $row . ':' . $score[1] . $row);
+            $sheet->setCellValue($score[0] . $row, $score[3]);
+            $sheet->getStyle($score[0] . $row)->applyFromArray([
+                'font' => ['size' => 14, 'bold' => true],
                 'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
-                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
             ]);
-            $sheet->getStyle($col . $row)->applyFromArray([
-                'font' => ['bold' => true],
-                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'EFF4F8']],
-            ]);
-            $col++;
         }
-        $row += 8;
+        $row++;
+        
+        // Final Score, Rank, Decision
+        $finalHeaders = [
+            ['A', 'D', 'Final Score', $applicant->selection->final_score ?? 0],
+            ['E', 'G', 'Rank', $applicant->selection->rank_no ?? '-'],
+            ['H', 'L', 'Decision', $applicant->selection->decision ?? 'Pending'],
+        ];
+        
+        foreach ($finalHeaders as $fh) {
+            $sheet->mergeCells($fh[0] . $row . ':' . $fh[1] . $row);
+            $sheet->setCellValue($fh[0] . $row, $fh[2] . ': ' . $fh[3]);
+            $sheet->getStyle($fh[0] . $row)->applyFromArray([
+                'font' => ['bold' => true, 'size' => 10],
+                'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+            ]);
+        }
+        
+        // Remarks
+        $row += 2;
+        $sheet->mergeCells('A' . $row . ':L' . $row);
+        $sheet->setCellValue('A' . $row, 'Remarks: ' . ($applicant->selection->remarks ?? 'N/A'));
+        $sheet->getStyle('A' . $row)->applyFromArray(['font' => ['italic' => true, 'size' => 10]]);
+        
+        // Committee Members & Date
+        $row++;
+        $sheet->mergeCells('A' . $row . ':G' . $row);
+        $sheet->setCellValue('A' . $row, 'Committee: ' . ($applicant->selection->committee_members ?? 'N/A'));
+        $sheet->mergeCells('H' . $row . ':L' . $row);
+        $sheet->setCellValue('H' . $row, 'Date: ' . ($applicant->selection->review_date ?? 'N/A'));
+        
+        // ============================================
+        // SIGNATURES
+        // ============================================
+        $row += 3;
+        $signatures = [
+            ['A', 'C', 'Prepared By'],
+            ['E', 'G', 'Reviewed By'],
+            ['I', 'L', 'Approved By'],
+        ];
+        
+        foreach ($signatures as $sig) {
+            $sheet->mergeCells($sig[0] . $row . ':' . $sig[1] . $row);
+            $sheet->setCellValue($sig[0] . $row, $sig[2]);
+            $sheet->getStyle($sig[0] . $row)->applyFromArray([
+                'font' => ['bold' => true, 'size' => 9],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+                'borders' => ['top' => ['borderStyle' => Border::BORDER_THIN]],
+            ]);
+            // Empty signature lines
+            for ($i = 1; $i <= 3; $i++) {
+                $sheet->mergeCells($sig[0] . ($row + $i) . ':' . $sig[1] . ($row + $i));
+            }
+        }
+        $row += 4;
+        
+        // Date line
+        foreach ($signatures as $sig) {
+            $sheet->mergeCells($sig[0] . $row . ':' . $sig[1] . $row);
+            $sheet->setCellValue($sig[0] . $row, 'Date: ___________');
+            $sheet->getStyle($sig[0] . $row)->applyFromArray([
+                'font' => ['size' => 8],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+            ]);
+        }
         
         // Footer
-        $sheet->mergeCells('A1:M1');
-        $sheet->setCellValue('A' . $row, 'Generated: ' . now()->format('Y-m-d H:i:s') . ' | Generated By: ' . (Auth::user()->username ?? 'System'));
+        $row += 2;
+        $sheet->mergeCells('A' . $row . ':L' . $row);
+        $sheet->setCellValue('A' . $row, 'Generated: ' . now()->format('Y-m-d H:i') . ' | TNT HR System');
         $sheet->getStyle('A' . $row)->applyFromArray([
-            'font' => ['italic' => true, 'size' => 9],
+            'font' => ['italic' => true, 'size' => 7, 'color' => ['rgb' => '627386']],
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
         ]);
         
-        // Auto-size columns
-        foreach (range('A', 'M') as $col) {
-            $sheet->getColumnDimension($col)->setAutoSize(true);
-        }
+        // Set print area and fit to page
+        $sheet->getPageSetup()->setPrintArea('A1:L' . $row);
+        $sheet->getPageSetup()->setFitToWidth(1);
+        $sheet->getPageSetup()->setFitToHeight(0);
         
         // Save and download
         $writer = new Xlsx($spreadsheet);
-        $filename = "Applicant_Profile_" . $applicant->full_name . "_" . now()->format('Ymd_His') . ".xlsx";
+        $filename = 'Profile_' . str_replace(' ', '_', $applicant->full_name) . '_' . now()->format('Ymd_His') . '.xlsx';
         
         $tempFile = tempnam(sys_get_temp_dir(), 'profile_');
         $writer->save($tempFile);
@@ -1960,7 +2117,7 @@ public function deletePosition($id)
         ]);
     }
 
-    // ============================================
+// ============================================
     // HELPER METHODS
     // ============================================
 

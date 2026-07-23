@@ -5,17 +5,27 @@ namespace App\Http\Controllers;
 use App\Models\DailyEntry;
 use App\Models\Project;
 use App\Models\Category;
+use App\Models\Applicant;
+use App\Models\LeaveRequest;
+use App\Services\ReportService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
+    protected $reportService;
+
+    public function __construct(ReportService $reportService)
+    {
+        $this->reportService = $reportService;
+    }
+
     public function index(Request $request)
     {
         $user = Auth::user();
         
-        // Get available dates
+        // DATE & FILTER SETUP
         $dates = DailyEntry::join('categories', 'categories.id', '=', 'daily_entries.category_id')
             ->where('categories.is_reconciliation', false)
             ->select(DB::raw('DISTINCT DATE_FORMAT(report_date, "%Y-%m-%d") as report_date'))
@@ -26,62 +36,43 @@ class DashboardController extends Controller
         if (empty($dates)) {
             $dates = [now()->format('Y-m-d')];
         }
+        $dates = array_values($dates);
 
-        $selectedDate = $request->input('date', end($dates));
+        $defaultDate = !empty($dates) ? end($dates) : now()->format('Y-m-d');
+        $selectedDate = $request->input('date', $defaultDate);
         $selectedProjectId = (int) $request->input('project', 0);
-        $selectedType = $request->input('type', 'All');
         $selectedProjectStatus = $request->input('project_status', 'Active');
 
-        // Get projects
         $projects = Project::orderByRaw('COALESCE(slot, 999), name')->get();
 
-        // Get project IDs based on status
         $projectIds = [];
         if ($selectedProjectStatus !== 'All') {
             $projectIds = Project::where('status', $selectedProjectStatus)->pluck('id')->toArray();
         }
 
-        // Calculate totals
-        $totalsQuery = DailyEntry::join('categories', 'categories.id', '=', 'daily_entries.category_id')
+        // ============================================
+        // MANPOWER TOTALS - FIXED: Use separate queries
+        // ============================================
+        // Create a BASE query (without employment_type filter)
+        $baseQuery = DailyEntry::join('categories', 'categories.id', '=', 'daily_entries.category_id')
             ->where('daily_entries.report_date', $selectedDate)
             ->where('categories.is_reconciliation', false);
 
         if ($selectedProjectId > 0) {
-            $totalsQuery->where('daily_entries.project_id', $selectedProjectId);
+            $baseQuery->where('daily_entries.project_id', $selectedProjectId);
         } elseif (!empty($projectIds)) {
-            $totalsQuery->whereIn('daily_entries.project_id', $projectIds);
+            $baseQuery->whereIn('daily_entries.project_id', $projectIds);
         }
 
-        $permanent = (int) $totalsQuery->where('categories.employment_type', 'Permanent')->sum('daily_entries.headcount');
-        $contract = (int) $totalsQuery->where('categories.employment_type', 'Contract')->sum('daily_entries.headcount');
-        $daily = (int) $totalsQuery->where('categories.employment_type', 'Daily')->sum('daily_entries.headcount');
+        // Clone the base query for each type to avoid query pollution
+        $permanent = (int) (clone $baseQuery)->where('categories.employment_type', 'Permanent')->sum('daily_entries.headcount');
+        $contract = (int) (clone $baseQuery)->where('categories.employment_type', 'Contract')->sum('daily_entries.headcount');
+        $daily = (int) (clone $baseQuery)->where('categories.employment_type', 'Daily')->sum('daily_entries.headcount');
         $grandTotal = $permanent + $contract + $daily;
 
-        // Get graph data
-        $graphQuery = DailyEntry::join('categories', 'categories.id', '=', 'daily_entries.category_id')
-            ->join('projects', 'projects.id', '=', 'daily_entries.project_id')
-            ->where('daily_entries.report_date', $selectedDate)
-            ->where('categories.is_reconciliation', false);
-
-        if ($selectedProjectId > 0) {
-            $graphQuery->where('daily_entries.project_id', $selectedProjectId);
-        } elseif (!empty($projectIds)) {
-            $graphQuery->whereIn('daily_entries.project_id', $projectIds);
-        }
-
-        if ($selectedType !== 'All') {
-            $graphQuery->where('categories.employment_type', $selectedType);
-        }
-
-        $graphProjects = $graphQuery->select(
-                'projects.name',
-                DB::raw('COALESCE(SUM(daily_entries.headcount), 0) as total')
-            )
-            ->groupBy('projects.id', 'projects.name', 'projects.slot')
-            ->orderByRaw('COALESCE(projects.slot, 999), projects.name')
-            ->get();
-
-        // Get table data
+        // ============================================
+        // TABLE DATA
+        // ============================================
         $tableQuery = DailyEntry::join('categories', 'categories.id', '=', 'daily_entries.category_id')
             ->join('projects', 'projects.id', '=', 'daily_entries.project_id')
             ->where('daily_entries.report_date', $selectedDate)
@@ -104,20 +95,33 @@ class DashboardController extends Controller
             ->orderByRaw('COALESCE(projects.slot, 999), projects.name')
             ->get();
 
+        // ============================================
+        // 30-DAY SUMMARY
+        // ============================================
+        $dateFrom = now()->subDays(30)->format('Y-m-d');
+        $dateTo = now()->format('Y-m-d');
+        $dashboardData = $this->reportService->getManagementDashboard($dateFrom, $dateTo, 0, 'All');
+
+        // ============================================
+        // HR STATS
+        // ============================================
+        $totalApplicants = Applicant::count();
+        $onLeaveToday = LeaveRequest::where('status', 'approved')
+            ->whereDate('start_date', '<=', now())
+            ->whereDate('end_date', '>=', now())
+            ->count();
+        $pendingLeaves = LeaveRequest::where('status', 'pending')->count();
+        $totalProjects = Project::count();
+        $activeProjects = Project::where('status', 'Active')->count();
+
         return view('dashboard.index', compact(
             'user',
-            'dates',
-            'selectedDate',
-            'projects',
-            'selectedProjectId',
-            'selectedType',
+            'dates', 'selectedDate', 'projects', 'selectedProjectId',
             'selectedProjectStatus',
-            'permanent',
-            'contract',
-            'daily',
-            'grandTotal',
-            'graphProjects',
-            'tableData'
+            'permanent', 'contract', 'daily', 'grandTotal',
+            'tableData', 'dashboardData',
+            'totalApplicants', 'onLeaveToday', 'pendingLeaves',
+            'totalProjects', 'activeProjects'
         ));
     }
 }

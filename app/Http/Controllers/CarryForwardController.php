@@ -188,4 +188,9 @@ class CarryForwardController extends Controller
         
         return back()->with("success", "Carry forward rejected.");
     }
+
+    public function destroy($id)
+    {
+        return $this->clear($id);
+    }
 }
