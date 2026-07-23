@@ -2,48 +2,43 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use Notifiable;
 
     protected $fillable = [
         'username',
-        'password_hash',
+        'email',
+        'password',
         'role',
         'active',
-        'must_change',
     ];
 
     protected $hidden = [
-        'password_hash',
+        'password',
+        'remember_token',
     ];
 
     protected $casts = [
         'active' => 'boolean',
-        'must_change' => 'boolean',
     ];
 
-    public function getAuthPassword()
-    {
-        return $this->password_hash;
-    }
-
-    public function isAdmin(): bool
-    {
-        return $this->role === 'admin';
-    }
-
-    public function isEditor(): bool
+    /**
+     * Check if user can edit data
+     */
+    public function canEdit()
     {
         return in_array($this->role, ['admin', 'editor']);
     }
 
-    public function canEdit(): bool
+    /**
+     * Check if user is admin
+     */
+    public function isAdmin()
     {
-        return $this->isEditor();
+        return $this->role === 'admin';
     }
 }

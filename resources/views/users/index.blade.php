@@ -1,645 +1,198 @@
-@extends('layouts.app')
+@extends('layout')
 
-@section('title', 'Users & Permissions - TNT HR')
+@section('title', 'User Management | TNT HR')
 
 @section('content')
 <style>
-    /* ============================================
-       USER MANAGEMENT STYLES
-       ============================================ */
-    .users-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        margin-bottom: 20px;
-    }
-    .users-header h1 {
-        margin: 0;
-        font-size: 26px;
-        color: #16324f;
-    }
-    .users-header .subtitle {
-        color: #627386;
-        font-size: 14px;
-        margin-top: 2px;
-    }
-
-    /* Stats Cards */
-    .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 12px;
-        margin-bottom: 24px;
-    }
-    .stat-card {
-        background: #fff;
-        border: 1px solid #dce5ee;
-        border-radius: 10px;
-        padding: 14px 18px;
-        text-align: center;
-        transition: all 0.2s;
-    }
-    .stat-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 15px rgba(0,0,0,0.06);
-    }
-    .stat-card .number {
-        font-size: 24px;
-        font-weight: 700;
-        color: #16324f;
-    }
-    .stat-card .label {
-        font-size: 11px;
-        color: #627386;
-        text-transform: uppercase;
-        letter-spacing: 0.03em;
-        font-weight: 600;
-        margin-top: 2px;
-    }
-    .stat-card.highlight {
-        background: #dfeeea;
-        border-color: #1b7f79;
-    }
-    .stat-card.highlight .number {
-        color: #0c5d58;
-    }
-    .stat-card .icon {
-        font-size: 20px;
-        margin-bottom: 2px;
-    }
-
-    /* Add User Card */
-    .add-user-card {
-        background: #fff;
-        border: 1px solid #dce5ee;
-        border-radius: 12px;
-        padding: 24px;
-        margin-bottom: 24px;
-        box-shadow: 0 2px 8px rgba(21,49,78,0.05);
-    }
-    .add-user-card .card-title {
-        font-size: 16px;
-        font-weight: 700;
-        color: #16324f;
-        margin: 0 0 4px 0;
-    }
-    .add-user-card .card-subtitle {
-        color: #627386;
-        font-size: 13px;
-        margin-bottom: 16px;
-    }
-    .add-user-form {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr auto;
-        gap: 12px;
-        align-items: end;
-    }
-    .add-user-form .field {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-    }
-    .add-user-form .field label {
-        font-size: 12px;
-        color: #627386;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.03em;
-    }
-    .add-user-form .field input,
-    .add-user-form .field select {
-        padding: 10px 14px;
-        border: 1px solid #bac8d6;
-        border-radius: 6px;
-        font-size: 14px;
-        background: #fff;
-        width: 100%;
-        transition: border-color 0.2s, box-shadow 0.2s;
-    }
-    .add-user-form .field input:focus,
-    .add-user-form .field select:focus {
-        outline: none;
-        border-color: #1b7f79;
-        box-shadow: 0 0 0 3px rgba(27, 127, 121, 0.08);
-    }
-    .add-user-form .btn-submit {
-        padding: 10px 28px;
-        background: #1b7f79;
-        color: #fff;
-        border: none;
-        border-radius: 6px;
-        font-weight: 700;
-        cursor: pointer;
-        font-size: 14px;
-        transition: background 0.2s;
-        white-space: nowrap;
-        margin-bottom: 0;
-    }
-    .add-user-form .btn-submit:hover {
-        background: #156b66;
-    }
-
-    /* Table Card */
-    .table-card {
-        background: #fff;
-        border: 1px solid #dce5ee;
-        border-radius: 12px;
-        padding: 20px 24px;
-        box-shadow: 0 2px 8px rgba(21,49,78,0.05);
-    }
-    .table-card .table-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        margin-bottom: 16px;
-    }
-    .table-card .table-header h3 {
-        margin: 0;
-        font-size: 16px;
-        color: #16324f;
-        font-weight: 700;
-    }
-    .table-card .table-header .records-count {
-        font-size: 12px;
-        color: #627386;
-        background: #f8fbfd;
-        padding: 4px 12px;
-        border-radius: 999px;
-    }
-
-    .table-wrap {
-        overflow-x: auto;
-    }
-    .table-wrap table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 13px;
-    }
-    .table-wrap th {
-        background: #f8fbfd;
-        color: #34495e;
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-        padding: 12px 14px;
-        text-align: left;
-        border-bottom: 2px solid #dce5ee;
-        font-weight: 700;
-    }
-    .table-wrap td {
-        padding: 12px 14px;
-        border-bottom: 1px solid #eef2f7;
-        vertical-align: middle;
-    }
-    .table-wrap tr:hover td {
-        background: #f8fbfd;
-    }
-    .table-wrap .user-avatar {
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        font-size: 14px;
-        color: #fff;
-        flex-shrink: 0;
-    }
-    .table-wrap .user-avatar.admin { background: #4b3bad; }
-    .table-wrap .user-avatar.editor { background: #0d6289; }
-    .table-wrap .user-avatar.viewer { background: #627386; }
-
-    .badge-role {
-        display: inline-block;
-        padding: 2px 12px;
-        border-radius: 999px;
-        font-size: 11px;
-        font-weight: 700;
-    }
-    .badge-role.admin { background: #e6e3ff; color: #4b3bad; }
-    .badge-role.editor { background: #dff3ff; color: #0d6289; }
-    .badge-role.viewer { background: #eee; color: #666; }
-
-    .badge-status {
-        display: inline-block;
-        padding: 2px 10px;
-        border-radius: 999px;
-        font-size: 11px;
-        font-weight: 700;
-    }
-    .badge-status.active { background: #dcf5e7; color: #12643c; }
-    .badge-status.inactive { background: #ffeded; color: #a61b1b; }
-
-    .actions-group {
-        display: flex;
-        gap: 6px;
-        flex-wrap: wrap;
-    }
-    .btn-sm {
-        padding: 4px 10px;
-        font-size: 11px;
-        border: none;
-        border-radius: 4px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.15s;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-    }
-    .btn-sm:hover { filter: brightness(0.93); }
-    .btn-sm.btn-toggle {
-        background: #e8f3f2;
-        color: #0c625e;
-    }
-    .btn-sm.btn-toggle:hover { background: #d5ebe9; }
-    .btn-sm.btn-reset {
-        background: #fff5e5;
-        color: #a45100;
-    }
-    .btn-sm.btn-reset:hover { background: #ffedcc; }
-    .btn-sm.btn-delete {
-        background: #ffeded;
-        color: #a61b1b;
-    }
-    .btn-sm.btn-delete:hover { background: #ffdddd; }
-    .btn-sm.btn-current {
-        background: #e9eff5;
-        color: #23384d;
-        cursor: default;
-    }
-
+    .page-header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:20px; }
+    .page-header h1 { font-size:20px; font-weight:800; color:#111827; margin:0; }
+    
+    .card { background:#fff; border-radius:12px; border:1px solid #e5e7eb; box-shadow:0 1px 3px rgba(0,0,0,0.04); overflow:hidden; margin-bottom:20px; }
+    .card-header { padding:16px 20px; border-bottom:1px solid #f3f4f6; display:flex; justify-content:space-between; align-items:center; }
+    .card-header h3 { font-size:15px; font-weight:700; color:#111827; margin:0; }
+    .card-body { padding:20px; }
+    
+    .form-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; margin-bottom:16px; }
+    .form-group { display:flex; flex-direction:column; gap:4px; }
+    .form-group label { font-size:11px; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:0.5px; }
+    .form-group input, .form-group select { padding:10px 14px; border:1px solid #d1d5db; border-radius:8px; font-size:13px; }
+    .form-group input:focus, .form-group select:focus { outline:none; border-color:#4f46e5; box-shadow:0 0 0 3px rgba(79,70,229,0.1); }
+    
+    .btn { display:inline-flex; align-items:center; gap:5px; padding:9px 16px; border-radius:7px; font-weight:600; font-size:12px; cursor:pointer; border:none; text-decoration:none; }
+    .btn-primary { background:#4f46e5; color:#fff; }
+    .btn-danger { background:#dc2626; color:#fff; }
+    .btn-outline { background:#fff; color:#374151; border:1px solid #d1d5db; }
+    .btn-sm { padding:5px 10px; font-size:11px; }
+    
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    table th { background:#f9fafb; padding:10px 14px; font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:#6b7280; text-align:left; border-bottom:1px solid #e5e7eb; }
+    table td { padding:10px 14px; border-bottom:1px solid #f3f4f6; vertical-align:middle; }
+    table tbody tr:hover td { background:#f9fafb; }
+    
+    .badge { display:inline-block; padding:3px 10px; border-radius:100px; font-size:10px; font-weight:600; }
+    .badge-success { background:#ecfdf5; color:#059669; }
+    .badge-danger { background:#fef2f2; color:#dc2626; }
+    .badge-info { background:#eef2ff; color:#4f46e5; }
+    .badge-warning { background:#fffbeb; color:#d97706; }
+    
+    .alert { padding:12px 16px; border-radius:8px; margin-bottom:16px; font-size:13px; }
+    .alert-success { background:#ecfdf5; color:#059669; border:1px solid #a7f3d0; }
+    .alert-error { background:#fef2f2; color:#dc2626; border:1px solid #fecaca; }
+    
     /* Modal */
-    .modal-overlay {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.5);
-        z-index: 9999;
-        align-items: center;
-        justify-content: center;
-    }
-    .modal-overlay.show {
-        display: flex;
-    }
-    .modal-box {
-        background: #fff;
-        border-radius: 12px;
-        padding: 30px;
-        max-width: 420px;
-        width: 92%;
-        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        animation: modalIn 0.3s ease;
-    }
-    @keyframes modalIn {
-        from { opacity: 0; transform: scale(0.95) translateY(-20px); }
-        to { opacity: 1; transform: scale(1) translateY(0); }
-    }
-    .modal-box .modal-title {
-        font-size: 18px;
-        font-weight: 700;
-        color: #16324f;
-        margin: 0 0 4px 0;
-    }
-    .modal-box .modal-subtitle {
-        color: #627386;
-        font-size: 13px;
-        margin-bottom: 16px;
-    }
-    .modal-box .field {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        margin-bottom: 12px;
-    }
-    .modal-box .field label {
-        font-size: 12px;
-        color: #627386;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.03em;
-    }
-    .modal-box .field input {
-        padding: 10px 14px;
-        border: 1px solid #bac8d6;
-        border-radius: 6px;
-        font-size: 14px;
-        width: 100%;
-    }
-    .modal-box .field input:focus {
-        outline: none;
-        border-color: #1b7f79;
-        box-shadow: 0 0 0 3px rgba(27, 127, 121, 0.08);
-    }
-    .modal-box .modal-actions {
-        display: flex;
-        gap: 10px;
-        margin-top: 16px;
-        justify-content: flex-end;
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-        .add-user-form {
-            grid-template-columns: 1fr 1fr;
-        }
-        .add-user-form .btn-submit {
-            grid-column: span 2;
-        }
-        .stats-grid {
-            grid-template-columns: 1fr 1fr;
-        }
-        .table-card .table-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 8px;
-        }
-    }
-    @media (max-width: 480px) {
-        .add-user-form {
-            grid-template-columns: 1fr;
-        }
-        .add-user-form .btn-submit {
-            grid-column: span 1;
-        }
-        .stats-grid {
-            grid-template-columns: 1fr;
-        }
-        .actions-group {
-            flex-direction: column;
-        }
-        .actions-group .btn-sm {
-            width: 100%;
-            justify-content: center;
-        }
-    }
+    .modal-overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:999; justify-content:center; align-items:center; }
+    .modal-overlay.show { display:flex; }
+    .modal-box { background:#fff; border-radius:14px; width:90%; max-width:500px; box-shadow:0 20px 50px rgba(0,0,0,0.3); }
+    .modal-header { padding:16px 20px; border-bottom:1px solid #e5e7eb; display:flex; justify-content:space-between; align-items:center; }
+    .modal-header h4 { margin:0; font-size:16px; font-weight:700; }
+    .modal-header .close { font-size:22px; cursor:pointer; color:#6b7280; background:none; border:none; }
+    .modal-body { padding:20px; }
+    .modal-footer { padding:12px 20px; border-top:1px solid #e5e7eb; display:flex; justify-content:flex-end; gap:8px; }
+    .btn-cancel { background:#fff; color:#374151; border:1px solid #d1d5db; padding:8px 16px; border-radius:7px; font-weight:600; font-size:12px; cursor:pointer; }
+    .btn-save { background:#4f46e5; color:#fff; border:none; padding:8px 16px; border-radius:7px; font-weight:600; font-size:12px; cursor:pointer; }
+    
+    @media (max-width:768px) { .form-row { grid-template-columns:1fr; } }
 </style>
 
-<!-- ============================================ -->
-<!-- HEADER -->
-<!-- ============================================ -->
-<div class="users-header">
+<div class="page-header">
     <div>
-        <h1>👥 Users & Permissions</h1>
-        <div class="subtitle">Manage user accounts, roles, and permissions</div>
+        <h1>👥 User Management</h1>
+        <p style="color:#6b7280; font-size:12px;">Manage system users and their roles</p>
     </div>
-    <div>
-        <span style="font-size:12px; color:#627386; background:#f8fbfd; padding:4px 12px; border-radius:999px;">
-            {{ $stats['total'] }} users
-        </span>
-    </div>
+    <button class="btn btn-primary" onclick="openAddModal()">➕ Add User</button>
 </div>
 
-@if(session('success'))
-    <div class="alert success">{{ session('success') }}</div>
-@endif
-@if(session('error'))
-    <div class="alert error">{{ session('error') }}</div>
-@endif
-@if($errors->any())
-    <div class="alert error">
-        @foreach($errors->all() as $error)
-            {{ $error }}<br>
-        @endforeach
-    </div>
-@endif
+@if(session('success'))<div class="alert alert-success">✅ {{ session('success') }}</div>@endif
+@if(session('error'))<div class="alert alert-error">❌ {{ session('error') }}</div>@endif
 
-<!-- ============================================ -->
-<!-- STATS CARDS -->
-<!-- ============================================ -->
-<div class="stats-grid">
-    <div class="stat-card highlight">
-        <div class="icon">👥</div>
-        <div class="number">{{ $stats['total'] }}</div>
-        <div class="label">Total Users</div>
-    </div>
-    <div class="stat-card">
-        <div class="icon">🛡️</div>
-        <div class="number">{{ $stats['admins'] }}</div>
-        <div class="label">Admins</div>
-    </div>
-    <div class="stat-card">
-        <div class="icon">✏️</div>
-        <div class="number">{{ $stats['editors'] }}</div>
-        <div class="label">Editors</div>
-    </div>
-    <div class="stat-card">
-        <div class="icon">👀</div>
-        <div class="number">{{ $stats['viewers'] }}</div>
-        <div class="label">Viewers</div>
-    </div>
-    <div class="stat-card">
-        <div class="icon">✅</div>
-        <div class="number">{{ $stats['active'] }}</div>
-        <div class="label">Active</div>
-    </div>
-    <div class="stat-card">
-        <div class="icon">⛔</div>
-        <div class="number">{{ $stats['inactive'] }}</div>
-        <div class="label">Inactive</div>
-    </div>
-</div>
-
-<!-- ============================================ -->
-<!-- ADD USER -->
-<!-- ============================================ -->
-@if(Auth::user()->isAdmin())
-<div class="add-user-card">
-    <div class="card-title">➕ Add New User</div>
-    <div class="card-subtitle">Create a new user account with specific role and permissions</div>
-
-    <form method="POST" action="{{ route('users.store') }}" class="add-user-form">
-        @csrf
-        <div class="field">
-            <label>Username <span style="color:red;">*</span></label>
-            <input type="text" name="username" placeholder="Enter username" required>
-        </div>
-        <div class="field">
-            <label>Temporary Password <span style="color:red;">*</span></label>
-            <input type="password" name="password" placeholder="Min 6 characters" required>
-        </div>
-        <div class="field">
-            <label>Role <span style="color:red;">*</span></label>
-            <select name="role" required>
-                <option value="">Select Role</option>
-                <option value="admin">🛡️ Admin</option>
-                <option value="editor">✏️ Editor</option>
-                <option value="viewer">👀 Viewer</option>
-            </select>
-        </div>
-        <button type="submit" class="btn-submit">➕ Create User</button>
-    </form>
-</div>
-@endif
-
-<!-- ============================================ -->
-<!-- USERS TABLE -->
-<!-- ============================================ -->
-<div class="table-card">
-    <div class="table-header">
-        <h3>📋 User List</h3>
-        <span class="records-count">{{ $users->count() }} users</span>
-    </div>
-
-    <div class="table-wrap">
+<!-- Users Table -->
+<div class="card" style="padding:0;">
+    <div class="card-header"><h3>📋 Users ({{ $users->count() }})</h3></div>
+    <div style="overflow-x:auto;">
         <table>
             <thead>
-                <tr>
-                    <th style="width:50px;">#</th>
-                    <th style="min-width:180px;">User</th>
-                    <th style="width:120px;">Role</th>
-                    <th style="width:100px;">Status</th>
-                    <th style="width:100px;">Must Change</th>
-                    <th style="width:200px;">Actions</th>
-                </tr>
+                <tr><th>#</th><th>Username</th><th>Email</th><th>Role</th><th>Status</th><th>Created</th><th style="text-align:center;">Actions</th></tr>
             </thead>
             <tbody>
                 @forelse($users as $index => $user)
-                    @php
-                        $initial = strtoupper(substr($user->username, 0, 1));
-                        $isCurrentUser = $user->id === Auth::id();
-                        $roleClass = $user->role;
-                        $statusClass = $user->active ? 'active' : 'inactive';
-                        $statusText = $user->active ? 'Active' : 'Disabled';
-                    @endphp
-                    <tr>
-                        <td>{{ $index + 1 }}</td>
-                        <td>
-                            <div style="display:flex; align-items:center; gap:12px;">
-                                <div class="user-avatar {{ $roleClass }}">
-                                    {{ $initial }}
-                                </div>
-                                <div>
-                                    <div style="font-weight:600; color:#16324f;">
-                                        {{ $user->username }}
-                                        @if($isCurrentUser)
-                                            <span style="font-size:10px; background:#e8f3f2; color:#0c625e; padding:1px 8px; border-radius:999px; margin-left:6px;">You</span>
-                                        @endif
-                                    </div>
-                                    <div style="font-size:11px; color:#627386;">
-                                        ID: #{{ $user->id }}
-                                    </div>
-                                </div>
-                            </div>
-                        </td>
-                        <td>
-                            <span class="badge-role {{ $roleClass }}">
-                                {{ ucfirst($user->role) }}
-                            </span>
-                        </td>
-                        <td>
-                            <span class="badge-status {{ $statusClass }}">
-                                {{ $statusText }}
-                            </span>
-                        </td>
-                        <td>
-                            @if($user->must_change)
-                                <span style="color:#a45100; font-weight:600; font-size:12px;">⚠️ Yes</span>
-                            @else
-                                <span style="color:#627386; font-size:12px;">No</span>
-                            @endif
-                        </td>
-                        <td>
-                            <div class="actions-group">
-                                @if(Auth::user()->isAdmin())
-                                    @if(!$isCurrentUser)
-                                        <form method="POST" action="{{ route('users.toggle-active', $user) }}" style="display:inline;">
-                                            @csrf
-                                            @method('POST')
-                                            <button type="submit" class="btn-sm btn-toggle" onclick="return confirm('{{ $user->active ? 'Disable' : 'Enable' }} this user?')">
-                                                {{ $user->active ? '🔒 Disable' : '🔓 Enable' }}
-                                            </button>
-                                        </form>
-                                        <button class="btn-sm btn-reset" onclick="showResetModal({{ $user->id }}, '{{ $user->username }}')">
-                                            🔑 Reset
-                                        </button>
-                                        <form method="POST" action="{{ route('users.destroy', $user) }}" style="display:inline;">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn-sm btn-delete" onclick="return confirm('Delete this user? This cannot be undone.')">
-                                                🗑️ Delete
-                                            </button>
-                                        </form>
-                                    @else
-                                        <span class="btn-sm btn-current">👤 Current User</span>
-                                    @endif
-                                @else
-                                    <span style="font-size:12px; color:#627386;">Read-only</span>
-                                @endif
-                            </div>
-                        </td>
-                    </tr>
+                <tr>
+                    <td>{{ $index + 1 }}</td>
+                    <td><strong>{{ $user->username }}</strong></td>
+                    <td>{{ $user->email ?? '-' }}</td>
+                    <td>
+                        <span class="badge {{ $user->role === 'admin' ? 'badge-info' : ($user->role === 'editor' ? 'badge-warning' : 'badge-success') }}">
+                            {{ ucfirst($user->role) }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge {{ $user->active ? 'badge-success' : 'badge-danger' }}">
+                            {{ $user->active ? 'Active' : 'Inactive' }}
+                        </span>
+                    </td>
+                    <td style="font-size:11px;">{{ $user->created_at->format('M d, Y') }}</td>
+                    <td style="text-align:center;">
+                        <div style="display:flex; gap:4px; justify-content:center;">
+                            <button class="btn btn-outline btn-sm" onclick="openEditModal({{ $user->id }}, '{{ $user->username }}', '{{ $user->email }}', '{{ $user->role }}')">
+                                ✏️
+                            </button>
+                            <form method="POST" action="{{ route('users.toggle-active', $user->id) }}" style="display:inline;">
+                                @csrf
+                                <button class="btn btn-sm {{ $user->active ? 'btn-danger' : 'btn-primary' }}" style="{{ $user->active ? '' : 'background:#059669;' }}">
+                                    {{ $user->active ? '🔒' : '🔓' }}
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ route('users.reset-password', $user->id) }}" style="display:inline;">
+                                @csrf
+                                <button class="btn btn-outline btn-sm" onclick="return confirm('Reset password for {{ $user->username }}?')">🔑</button>
+                            </form>
+                            <form method="POST" action="{{ route('users.destroy', $user->id) }}" style="display:inline;">
+                                @csrf @method('DELETE')
+                                <button class="btn btn-sm" style="background:#dc2626; color:#fff;" onclick="return confirm('Delete {{ $user->username }}?')">🗑️</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
                 @empty
-                    <tr>
-                        <td colspan="6" style="text-align:center; padding:40px; color:#627386;">
-                            <div style="font-size:48px; margin-bottom:8px;">📭</div>
-                            <div style="font-weight:600; font-size:16px;">No users found</div>
-                            <div style="font-size:13px;">Add your first user using the form above.</div>
-                        </td>
-                    </tr>
+                <tr><td colspan="7" style="text-align:center;padding:30px;color:#6b7280;">No users found</td></tr>
                 @endforelse
             </tbody>
         </table>
     </div>
 </div>
 
-<!-- ============================================ -->
-<!-- RESET PASSWORD MODAL -->
-<!-- ============================================ -->
-<div class="modal-overlay" id="resetModal">
+<!-- ADD USER MODAL -->
+<div class="modal-overlay" id="addModal">
     <div class="modal-box">
-        <div class="modal-title">🔑 Reset Password</div>
-        <div class="modal-subtitle">Reset password for user: <strong id="resetUsername"></strong></div>
-
-        <form method="POST" id="resetForm">
+        <div class="modal-header">
+            <h4>➕ Add New User</h4>
+            <button class="close" onclick="closeAddModal()">&times;</button>
+        </div>
+        <form method="POST" action="{{ route('users.store') }}">
             @csrf
-            @method('POST')
-            <div class="field">
-                <label>New Password <span style="color:red;">*</span></label>
-                <input type="password" name="new_password" placeholder="Min 6 characters" required minlength="6">
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-group"><label>Username *</label><input type="text" name="username" required></div>
+                    <div class="form-group"><label>Email</label><input type="email" name="email"></div>
+                    <div class="form-group"><label>Password *</label><input type="password" name="password" required></div>
+                    <div class="form-group"><label>Role *</label>
+                        <select name="role" required>
+                            <option value="admin">Admin</option>
+                            <option value="editor">Editor</option>
+                            <option value="viewer" selected>Viewer</option>
+                        </select>
+                    </div>
+                </div>
             </div>
-            <div class="modal-actions">
-                <button type="button" class="btn light" onclick="closeResetModal()">Cancel</button>
-                <button type="submit" class="btn" style="background:#d38b2a;">🔑 Reset Password</button>
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel" onclick="closeAddModal()">Cancel</button>
+                <button type="submit" class="btn-save">💾 Save User</button>
             </div>
         </form>
     </div>
 </div>
 
-<!-- ============================================ -->
-<!-- JAVASCRIPT -->
-<!-- ============================================ -->
+<!-- EDIT USER MODAL -->
+<div class="modal-overlay" id="editModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h4>✏️ Edit User</h4>
+            <button class="close" onclick="closeEditModal()">&times;</button>
+        </div>
+        <form method="POST" action="" id="editForm">
+            @csrf
+            @method('PUT')
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-group"><label>Username *</label><input type="text" name="username" id="editUsername" required></div>
+                    <div class="form-group"><label>Email</label><input type="email" name="email" id="editEmail"></div>
+                    <div class="form-group"><label>New Password (leave blank to keep)</label><input type="password" name="password"></div>
+                    <div class="form-group"><label>Role *</label>
+                        <select name="role" id="editRole" required>
+                            <option value="admin">Admin</option>
+                            <option value="editor">Editor</option>
+                            <option value="viewer">Viewer</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel" onclick="closeEditModal()">Cancel</button>
+                <button type="submit" class="btn-save">💾 Update User</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
-    function showResetModal(userId, username) {
-        document.getElementById('resetModal').classList.add('show');
-        document.getElementById('resetUsername').textContent = username;
-        document.getElementById('resetForm').action = '/users/' + userId + '/reset-password';
-    }
-
-    function closeResetModal() {
-        document.getElementById('resetModal').classList.remove('show');
-    }
-
-    // Close modal when clicking outside
-    document.addEventListener('click', function(event) {
-        const modal = document.getElementById('resetModal');
-        if (event.target === modal) {
-            closeResetModal();
-        }
-    });
-
-    // Close modal on Escape key
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            closeResetModal();
-        }
-    });
+function openAddModal() { document.getElementById('addModal').classList.add('show'); }
+function closeAddModal() { document.getElementById('addModal').classList.remove('show'); }
+function openEditModal(id, username, email, role) {
+    document.getElementById('editForm').action = '/users/' + id;
+    document.getElementById('editUsername').value = username;
+    document.getElementById('editEmail').value = email;
+    document.getElementById('editRole').value = role;
+    document.getElementById('editModal').classList.add('show');
+}
+function closeEditModal() { document.getElementById('editModal').classList.remove('show'); }
 </script>
 @endsection
